@@ -53,7 +53,8 @@ Architecture Decision Records in `architecture/adr/` follow this naming conventi
 | 0002 | Technology Stack | proposed |
 | 0003 | CI/CD Strategy | accepted |
 | 0004 | Deployment & Infrastructure | proposed |
-| 0005 | Cloud Provider Selection | pending |
+| 0005 | Environments & Deployment Pipeline | proposed |
+| 0006 | Cloud Provider Selection | pending |
 
 Each ADR covers:
 - **Status**: proposed | accepted | deprecated | superseded

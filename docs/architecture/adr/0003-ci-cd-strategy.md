@@ -58,12 +58,12 @@ jobs:
   build:
     - needs: [test]
     - ./gradlew bootJar (produces fat JAR)
-    - Uploads JAR as artifact (for deployment)
+    - Uploads Docker image as artifact (for deployment)
 
   deploy-staging:
     - if: push to main
     - needs: [build]
-    - Deploys the JAR to staging environment
+    - Deploys to staging VM (see ADR 0005)
     - Runs smoke tests against staging
 ```
 
@@ -89,17 +89,16 @@ jobs:
     - pnpm test (Jest + React Native Testing Library)
     - Uploads coverage report
 
-  build-preview:
-    - needs: [test]
-    - EAS Build (Expo) — creates a preview build
-    - Uploads to Expo for manual testing
-
-  build-production:
+  deploy-staging:
     - if: push to main
     - needs: [test]
-    - EAS Build — production build
-    - Submits to App Store Connect / Google Play Console (manual trigger on release tags)
+    - EAS Update (OTA) — JS changes reach existing preview builds
+    - EAS Build (preview) — new installable for testers
+    - Points to staging backend (see ADR 0005)
 ```
+
+Production deployment is a separate `deploy-prod.yml` workflow triggered manually
+via `workflow_dispatch`, restricted to contributors. See ADR 0005.
 
 ### Quality Gates (all must pass before merge)
 

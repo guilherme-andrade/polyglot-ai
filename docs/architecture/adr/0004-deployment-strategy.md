@@ -56,37 +56,19 @@ PostgreSQL and MongoDB run as managed cloud services, not self-hosted on the VM.
 **Rationale**: Managed databases handle backups, patching, and high availability. The
 cost difference is small at this scale, and a 3-person team should not be doing DBA work.
 
-### Environments
+### Environments & Deployment Pipeline
 
-| Environment | Purpose | Database | Deployment trigger |
-|-------------|---------|----------|-------------------|
-| `dev` | Active development testing | Separate, seeded with test data | Manual (or on `feature/*` PR for complex features) |
-| `staging` | Pre-release validation | Anonymized copy of prod (smaller) | Auto on merge to `main` |
-| `prod` | Live users | Production | Manual promotion from staging |
+See **[ADR 0005](0005-environments-and-deployment-pipeline.md)** for the full
+environments and deployment trigger specification. In summary:
 
-**Why not deploy to prod on every merge to main?**
+| Environment | Trigger |
+|-------------|---------|
+| `local` | Docker Compose (per-developer) |
+| `staging` | Automatic on push to `main` |
+| `prod` | Manual via `workflow_dispatch`, contributors only |
 
-For a consumer mobile app, a bad deploy means a broken experience for every user.
-The release cadence is daily lessons — not continuous delivery of backend changes.
-A manual promotion step from staging to prod costs minutes and prevents hours of
-incident response.
-
-### Mobile: EAS Build + App Store submission
-
-Expo Application Services (EAS) handles the mobile build pipeline:
-
-1. **Dev builds**: Created on PR for manual testing on simulators
-2. **Preview builds**: Created on merge to `main`, distributed via EAS Update for
-   internal testing (over-the-air updates for JS changes)
-3. **Production builds**: Triggered manually for App Store submission
-
-**EAS Update (OTA)**: JavaScript and asset changes can be pushed over-the-air without
-going through App Store review. This is critical for rapid iteration. Native code
-changes still require a full build and App Store submission.
-
-**App Store strategy**: TBD — the team lead will research this with AI assistance.
-Key unknowns: Apple Developer Program enrollment, TestFlight setup, review guidelines
-for AI-generated content.
+Mobile testing is handled via EAS preview builds + OTA updates pointing to the
+staging backend.
 
 ### Infrastructure as Code
 
