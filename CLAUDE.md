@@ -44,9 +44,15 @@ These apply to **any** task in this repo, regardless of context:
 ## Quick Start
 
 ```bash
+# First-time setup
+./scripts/setup.sh
+
+# Verify environment
+./scripts/verify.sh
+
 # Server
-cd server && ./gradlew bootRun
+cd server && docker compose up -d && ./gradlew bootRun
 
 # App
-cd app && pnpm start
+cd app && pnpm install && pnpm start
 ```
