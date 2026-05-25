@@ -13,6 +13,7 @@ Monorepo, 3-person team, heavy AI collaboration.
 - **App conventions**: [`app/README.md`](app/README.md)
 - **Server conventions**: [`server/README.md`](server/README.md)
 - **Wiki**: [github.com/guilherme-andrade/polyglot-ai/wiki](https://github.com/guilherme-andrade/polyglot-ai/wiki)
+- **Testing guide**: [`docs/testing.md`](docs/testing.md)
 
 ## Repository Map
 
@@ -40,6 +41,11 @@ These apply to **any** task in this repo, regardless of context:
 4. **Keep the wiki updated.** If you change the architecture, deployment flow,
    workflow, or any convention documented in the wiki, update the relevant
    wiki page in the same PR.
+5. **Always test your work. Work is not ready until it's been tested.**
+   Read [`docs/testing.md`](docs/testing.md) for how to run servers, test locally,
+   and automate tests. Include test evidence in your PR description — curl commands,
+   CI results, screenshots, or Playwright traces. Every acceptance criteria in the
+   spec must be verified.
 
 ## Quick Start
 
