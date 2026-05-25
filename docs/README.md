@@ -45,7 +45,15 @@ Screen flows, state handling (loading, empty, error, edge cases).
 ## ADR Format
 
 Architecture Decision Records in `architecture/adr/` follow this naming convention:
-`NNNN-slug.md` (e.g. `0001-use-postgresql-for-primary-store.md`).
+`NNNN-slug.md`.
+
+| Number | Title | Status |
+|--------|-------|--------|
+| 0001 | Monorepo with DDD | accepted |
+| 0002 | Technology Stack | accepted |
+| 0003 | CI/CD Strategy | accepted |
+| 0004 | Deployment & Infrastructure | proposed |
+| 0005 | Cloud Provider Selection | pending |
 
 Each ADR covers:
 - **Status**: proposed | accepted | deprecated | superseded
