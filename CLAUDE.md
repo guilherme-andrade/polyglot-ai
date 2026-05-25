@@ -16,6 +16,7 @@ Monorepo, 3-person team, heavy AI collaboration.
 - **Workflows**: [`docs/workflows.md`](docs/workflows.md) — spec→issue→dev→PR→ship lifecycle
 - **Testing guide**: [`docs/testing.md`](docs/testing.md) — how to test every layer
 - **Playbooks**: [`scripts/`](scripts/) — automation scripts (setup, verify, etc.)
+- **Testing guide**: [`docs/testing.md`](docs/testing.md)
 
 ## Repository Map
 
@@ -51,6 +52,11 @@ These apply to **any** task in this repo, regardless of context:
    does it. `ls scripts/` to see what's available. Playbooks are the single
    source of truth for how to operate the project — if a command isn't in a
    playbook, add one rather than pasting it inline.
+6. **Always test your work. Work is not ready until it's been tested.**
+   Read [`docs/testing.md`](docs/testing.md) for how to run servers, test locally,
+   and automate tests. Include test evidence in your PR description — curl commands,
+   CI results, screenshots, or Playwright traces. Every acceptance criteria in the
+   spec must be verified.
 
 ## Quick Start
 
