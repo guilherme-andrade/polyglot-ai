@@ -20,7 +20,7 @@ content matching, semantic search over embeddings).
 |--------|---------|--------|
 | Flutter + Dart | Rejected | Smaller AI training corpus than React/TypeScript — AI agents are less effective with Dart. |
 | Native (SwiftUI + Jetpack Compose) | Rejected | Two codebases is too expensive for 3 devs. No shared logic. |
-| React Native (bare) | Open | More native module flexibility at the cost of per-platform build config. EAS Build works with both managed and bare — it is not a differentiator. Worth discussing: do we need native modules that managed Expo doesn't support? |
+| React Native (bare) | Rejected | More native module flexibility at the cost of per-platform build config. For a 3-person team with no dedicated mobile infra specialist, managed Expo eliminates Xcode/Gradle config, native module linking, and certificate management — work that would otherwise block feature development. |
 
 TypeScript in strict mode catches a class of bugs that are especially common in
 AI-generated code (null access, implicit any, missing properties).
