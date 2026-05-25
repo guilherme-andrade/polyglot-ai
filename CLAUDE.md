@@ -13,7 +13,9 @@ Monorepo, 3-person team, heavy AI collaboration.
 - **App conventions**: [`app/README.md`](app/README.md)
 - **Server conventions**: [`server/README.md`](server/README.md)
 - **Wiki**: [github.com/guilherme-andrade/polyglot-ai/wiki](https://github.com/guilherme-andrade/polyglot-ai/wiki)
-- **Playbooks**: [`scripts/`](scripts/) — setup, verify, and other automation scripts
+- **Workflows**: [`docs/workflows.md`](docs/workflows.md) — spec→issue→dev→PR→ship lifecycle
+- **Testing guide**: [`docs/testing.md`](docs/testing.md) — how to test every layer
+- **Playbooks**: [`scripts/`](scripts/) — automation scripts (setup, verify, etc.)
 
 ## Repository Map
 
@@ -33,8 +35,10 @@ polyglot-ai/
 
 These apply to **any** task in this repo, regardless of context:
 
-1. **Read the spec first.** Before touching code, read the relevant spec in
-   `docs/specs/`. If no spec exists, one must be written and agreed upon first.
+1. **Follow the workflow.** Read [`docs/workflows.md`](docs/workflows.md) for the
+   full spec→issue→dev→PR→ship lifecycle. Before touching code, read the relevant
+   spec in `docs/specs/`. If no spec exists, one must be written and approved first.
+   If a playbook exists for what you're about to do, use it.
 2. **Read the subdirectory README** before working in that part of the codebase.
    Start at `app/README.md` or `server/README.md` depending on what you're touching.
 3. **Check `docs/architecture.md`** for DDD conventions, layering rules, and
