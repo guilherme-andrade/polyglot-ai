@@ -13,6 +13,7 @@ Monorepo, 3-person team, heavy AI collaboration.
 - **App conventions**: [`app/README.md`](app/README.md)
 - **Server conventions**: [`server/README.md`](server/README.md)
 - **Wiki**: [github.com/guilherme-andrade/polyglot-ai/wiki](https://github.com/guilherme-andrade/polyglot-ai/wiki)
+- **Playbooks**: [`scripts/`](scripts/) — setup, verify, and other automation scripts
 
 ## Repository Map
 
@@ -23,6 +24,7 @@ polyglot-ai/
 ├── docs/         Specs, architecture, ADRs, manifesto
 ├── terraform/    Infra-as-code
 ├── ansible/      Server configuration
+├── scripts/      Playbooks — setup, verify, run-server, etc.
 ├── .github/      CI/CD workflows
 └── .claude/      Claude Code agent settings
 ```
@@ -40,6 +42,11 @@ These apply to **any** task in this repo, regardless of context:
 4. **Keep the wiki updated.** If you change the architecture, deployment flow,
    workflow, or any convention documented in the wiki, update the relevant
    wiki page in the same PR.
+5. **Use playbooks from `scripts/`.** Before manually running commands to set up,
+   verify, start servers, or run tests, check `scripts/` for a playbook that
+   does it. `ls scripts/` to see what's available. Playbooks are the single
+   source of truth for how to operate the project — if a command isn't in a
+   playbook, add one rather than pasting it inline.
 
 ## Quick Start
 

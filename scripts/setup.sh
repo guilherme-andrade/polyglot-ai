@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu
+# NOTE: pipefail intentionally off — some version checks pipe through grep/head
+# and should not fail the script when a command isn't found yet
 
 # ─── Polyglot AI — Development Environment Setup ─────────────────────────────
 # Installs all dependencies, configures MCPs, and verifies the environment.
@@ -97,21 +99,24 @@ step "Checking Java 21 (Temurin)"
 
 JAVA_OK=false
 if check_cmd java; then
-  JAVA_VER=$(java -version 2>&1 | head -1 | grep -oE '[0-9]+' | head -1 || echo "0")
-  if [[ "$JAVA_VER" -ge "$REQUIRED_JAVA" ]]; then
+  JAVA_VER=$(java -version 2>&1 | head -1 | grep -oE '"([0-9]+)' | tr -d '"' || echo "0")
+  if [[ -n "$JAVA_VER" && "$JAVA_VER" -ge "$REQUIRED_JAVA" ]]; then
     ok "Java $JAVA_VER found ($(which java))"
     JAVA_OK=true
   else
-    warn "Java $JAVA_VER found but Java $REQUIRED_JAVA+ is required"
+    warn "Java found but version < $REQUIRED_JAVA (reported: $JAVA_VER)"
   fi
+else
+  warn "Java not found"
 fi
 
 if [[ "$JAVA_OK" == "false" ]]; then
   info "Installing Java 21 via Homebrew..."
   brew install --cask temurin@21 2>/dev/null || brew install openjdk@21
-  info "Java 21 installed. You may need to restart your shell."
-  export JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null || echo '')"
-  ok "Java 21 installed"
+  # Add Java to PATH for this session
+  export JAVA_HOME="$(/usr/libexec/java_home -v 21 2>/dev/null || echo '/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home')"
+  export PATH="$JAVA_HOME/bin:$PATH"
+  ok "Java 21 installed ($(java -version 2>&1 | head -1))"
 fi
 
 # ── Step 5: Node.js ──────────────────────────────────────────────────────────
@@ -292,14 +297,25 @@ report() {
   fi
 }
 
-report "java"        java --version 2>&1 | head -1
+report() {
+  local name="$1"; shift
+  local ver
+  if check_cmd "$1"; then
+    ver=$("$@" 2>&1 | head -1) || ver="(version check failed)"
+    printf "  ${GREEN}%-16s${NC} %s\n" "$name" "$ver"
+  else
+    printf "  ${RED}%-16s${NC} not found\n" "$name"
+  fi
+}
+
+report "java"        java -version
 report "node"        node --version
 report "pnpm"        pnpm --version
-report "docker"      docker --version 2>/dev/null || echo "not running"
-report "gh"          gh --version 2>&1 | head -1
-report "terraform"   terraform --version | head -1
-report "ansible"     ansible --version | head -1
+report "docker"      docker --version
+report "gh"          gh --version
+report "terraform"   terraform --version
+report "ansible"     ansible --version
 report "lefthook"    lefthook version
-report "eas"         eas --version 2>/dev/null || echo "not found"
+report "eas"         eas --version
 
 echo
