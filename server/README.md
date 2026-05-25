@@ -14,19 +14,27 @@ Java 21 + Spring Boot 3.5 backend, organised with Domain-Driven Design.
 
 ## Getting Started
 
+Requires JDK 21 (Temurin or OpenJDK) on `JAVA_HOME` and Docker.
+
 ```bash
-# Start PostgreSQL + MongoDB (via Testcontainers or local)
+# Start PostgreSQL 17 + pgvector (host port 5433) and MongoDB 8 (host port 27017)
 docker compose up -d
 
-# Run the server
+# Run the server (http://localhost:8080)
 ./gradlew bootRun
 
-# Run tests
+# Run tests (smoke + ArchUnit boundary tests)
 ./gradlew test
 
-# Format code
+# Format code (Palantir Java format)
 ./gradlew spotlessApply
+
+# Full CI pipeline locally: format, lint, archunit, test
+./gradlew check
 ```
+
+Postgres is published on host port **5433** to avoid conflict with locally-installed
+Postgres on the default 5432. Override the JDBC URL via `POLYGLOT_DB_URL` if needed.
 
 ## Package Structure (DDD)
 
