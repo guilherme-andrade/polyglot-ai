@@ -20,20 +20,14 @@ GitHub review with inline comments.
 /review all        # Review all open PRs by other devs
 ```
 
-## Phase 0: Credentials & repository
+## Phase 0: Pre-flight checks
 
-Source the reviewer token and set up the GitHub CLI:
+Verify the reviewer token file exists (but do NOT export it — the bot token is only
+for posting reviews in Phase 8; all other gh commands use the default account):
 
 ```bash
 source .env.ops 2>/dev/null || { echo "ERROR: Missing .env.ops — create it from .env.ops.example and set REVIEWER_GITHUB_TOKEN"; exit 1; }
-export GH_TOKEN="$REVIEWER_GITHUB_TOKEN"
-```
-
-Confirm we are authenticated as the reviewer bot (not the user's personal account):
-
-```bash
-echo "Authenticated as: $(gh api user --jq '.login')"
-gh auth status
+# DO NOT export GH_TOKEN here. Phases 1–7 use the default gh auth.
 ```
 
 Determine the repo owner/name:
@@ -247,6 +241,19 @@ The bar for APPROVE is high. When in doubt, COMMENT with specific asks.
 
 ## Phase 8: Post the review
 
+**The REVIEWER_GITHUB_TOKEN is only used in this phase.** All gh commands in
+Phases 0–7 ran under the default account. Now we switch to the reviewer bot
+solely to post the review verdict and inline comments.
+
+```bash
+source .env.ops 2>/dev/null
+export GH_TOKEN="$REVIEWER_GITHUB_TOKEN"
+echo "Posting review as: $(gh api user --jq '.login')"
+```
+
+After this phase, the token should not be used for any other operations
+(merge, push, PR creation, etc.).
+
 ### 8.1 Draft the review body
 
 Read `.claude/skills/review/review-template.md` for the standard format. Fill it in
@@ -293,6 +300,9 @@ gh pr view $PR --comments --json reviews,comments | jq .
 ## Phase 9: Cleanup
 
 ```bash
+# Unset the reviewer token — subsequent gh commands should use the default account
+unset GH_TOKEN
+
 # Stop server
 pkill -f "gradlew bootRun" 2>/dev/null || true
 
