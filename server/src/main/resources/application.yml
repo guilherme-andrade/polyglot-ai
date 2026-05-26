@@ -23,6 +23,14 @@ spring:
   data:
     mongodb:
       uri: ${POLYGLOT_MONGO_URI:mongodb://localhost:27017/polyglot}
+  # JWT validation activates when issuer-uri is set; leave blank in dev to skip.
+  # The auth feature PR (see docs/specs/) will populate this and move SecurityConfig
+  # into the owning bounded context.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${POLYGLOT_JWT_ISSUER_URI:}
 
 server:
   port: ${POLYGLOT_PORT:8080}
