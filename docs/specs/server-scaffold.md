@@ -107,10 +107,13 @@ Each item below has a documented trigger for when to add it.
 ## Temporary scaffolding
 
 Three pieces of code exist only because the scaffold needs to start cleanly with no
-feature code on top. **Remove them in the same PR that introduces the first real
-implementation in the relevant area.**
+feature code on top. They live in the dedicated
+[`com.polyglotai.bootstrap`](../../server/src/main/java/com/polyglotai/bootstrap/package-info.java)
+package — explicitly **not a bounded context** — so they're easy to find and remove.
+**Delete each one in the same PR that introduces the first real implementation in
+the relevant area.**
 
-### `com.polyglotai.PingGraphqlController` + `graphql/schema.graphqls`
+### `com.polyglotai.bootstrap.PingGraphqlController` + `graphql/schema.graphqls`
 
 GraphQL requires `type Query` to declare at least one field, and Spring for GraphQL
 fails at startup otherwise. A single `ping: String!` query is declared and resolved
@@ -118,16 +121,20 @@ by `PingGraphqlController` so the boot sequence succeeds before any context defi
 real queries.
 
 **Remove when**: any bounded context contributes its first `*.graphqls` file with a
-real `Query` field.
+real `Query` field. The resolver and the `ping` field should both go in that same PR.
 
-### `com.polyglotai.SecurityConfig`
+### `com.polyglotai.bootstrap.SecurityConfig`
 
-Lives at the application root (outside any bounded context) and:
+Two-mode security configuration switched by whether
+`spring.security.oauth2.resourceserver.jwt.issuer-uri` is configured:
 
-- Permits `/actuator/health/**`, `/actuator/info`, `/graphql`, `/graphiql/**`
-- Requires authentication on everything else
-- Wires `oauth2ResourceServer().jwt()` only when
-  `spring.security.oauth2.resourceserver.jwt.issuer-uri` is configured
+- **Unconfigured (local dev)**: permits `/actuator/health/**`, `/actuator/info`,
+  `/graphql`, and `/graphiql/**`. Everything else requires authentication, but no
+  auth mechanism is wired up — protected routes return 403 until the first auth
+  feature lands.
+- **Configured (staging / prod)**: only `/actuator/health/**` and `/actuator/info`
+  are open. `/graphql` requires a valid JWT validated against the configured issuer;
+  GraphiQL is not exposed.
 
 **Move when**: the auth feature spec for the `user` context lands. At that point the
 config should move into `com.polyglotai.user.infrastructure` (or wherever the auth
