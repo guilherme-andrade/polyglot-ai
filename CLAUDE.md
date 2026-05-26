@@ -9,6 +9,7 @@ Monorepo, 3-person team, heavy AI collaboration.
 - **Vision & stack**: [`docs/project-manifesto.md`](docs/project-manifesto.md)
 - **Architecture (DDD)**: [`docs/architecture.md`](docs/architecture.md)
 - **Feature specs**: [`docs/specs/`](docs/specs/)
+  - **Server scaffold spec**: [`docs/specs/server-scaffold.md`](docs/specs/server-scaffold.md)
 - **ADR records**: [`docs/architecture/adr/`](docs/architecture/adr/)
 - **App conventions**: [`app/README.md`](app/README.md)
 - **Server conventions**: [`server/README.md`](server/README.md)
