@@ -32,6 +32,9 @@ polyglot-ai/
 
 These apply to **any** task in this repo, regardless of context:
 
+0. **Verify setup has run.** Run `./scripts/setup.sh`. This installs tools
+   (Lefthook, pnpm), activates git hooks, and verifies Java and Docker are
+   available. If it's already been run, it's safe to re-run — it's idempotent.
 1. **Read the spec first.** Before touching code, read the relevant spec in
    `docs/specs/`. If no spec exists, one must be written and agreed upon first.
 2. **Read the subdirectory README** before working in that part of the codebase.
@@ -50,6 +53,12 @@ These apply to **any** task in this repo, regardless of context:
 ## Quick Start
 
 ```bash
+# First-time setup (safe to re-run — idempotent)
+./scripts/setup.sh
+
+# Start databases
+cd server && docker compose up -d
+
 # Server
 cd server && ./gradlew bootRun
 
