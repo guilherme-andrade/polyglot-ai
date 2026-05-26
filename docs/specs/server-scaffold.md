@@ -125,20 +125,25 @@ real `Query` field. The resolver and the `ping` field should both go in that sam
 
 ### `com.polyglotai.bootstrap.SecurityConfig`
 
-Two-mode security configuration switched by whether
-`spring.security.oauth2.resourceserver.jwt.issuer-uri` is configured:
+Two-mode security configuration switched **explicitly** by the
+`polyglot.security.insecure-dev` property (env var `POLYGLOT_SECURITY_INSECURE_DEV`):
 
-- **Unconfigured (local dev)**: permits `/actuator/health/**`, `/actuator/info`,
-  `/graphql`, and `/graphiql/**`. Everything else requires authentication, but no
-  auth mechanism is wired up — protected routes return 403 until the first auth
-  feature lands.
-- **Configured (staging / prod)**: only `/actuator/health/**` and `/actuator/info`
-  are open. `/graphql` requires a valid JWT validated against the configured issuer;
-  GraphiQL is not exposed.
+- **Secure (default, `insecure-dev=false`)**: actuator health/info are open;
+  everything else requires authentication. JWT resource-server validation activates if
+  `spring.security.oauth2.resourceserver.jwt.issuer-uri` is also configured. Without
+  an issuer URI, protected routes return 403 — the application is reachable but inert.
+- **Insecure dev opt-in (`insecure-dev=true`)**: additionally permits `/graphql` and
+  `/graphiql/**` so developers can use GraphiQL without a token. The application
+  logs a loud `WARN` at startup so this can never be enabled silently.
+
+This is fail-closed by design: a production deploy that forgets to set
+`POLYGLOT_JWT_ISSUER_URI` returns 403 on every request rather than exposing GraphQL.
+`POLYGLOT_SECURITY_INSECURE_DEV` **must never be true outside local development**.
 
 **Move when**: the auth feature spec for the `user` context lands. At that point the
 config should move into `com.polyglotai.user.infrastructure` (or wherever the auth
-feature specifies), and the request-matcher list should be re-evaluated.
+feature specifies), the `polyglot.security.insecure-dev` opt-in should likely be
+replaced by a Spring profile, and the request-matcher list should be re-evaluated.
 
 ### ArchUnit relaxations
 
