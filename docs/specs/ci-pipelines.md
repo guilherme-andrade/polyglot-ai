@@ -1,60 +1,54 @@
-# Spec: CI Pipelines (Server + App)
+# CI Pipelines
 
-**Status**: draft
-**Bounded contexts**: devops
-**Issue**: [#24](https://github.com/guilherme-andrade/polyglot-ai/issues/24), [#11](https://github.com/guilherme-andrade/polyglot-ai/issues/11)
-**Depends on**: ADR-0003 (CI/CD Strategy), ADR-0005 (Environments)
+## Purpose
 
-## Overview
+GitHub Actions workflows that run quality gates on every PR and push to main for both server (Java/Gradle) and app (TypeScript/Expo). Failed checks MUST block merge. Both pipelines SHALL mirror the local verification commands documented in `docs/testing.md`.
 
-GitHub Actions workflows that run on every PR and push to main. Quality gates
-must pass before merge. Covers both server (Java/Gradle) and app (TypeScript/Expo).
+## Requirements
 
-## Server CI (`server-ci.yml`)
+### Requirement: Server CI MUST gate on format, lint, ArchUnit, and test
 
-Triggered on PRs and pushes to main with paths: `server/**`.
+The server CI workflow SHALL run `spotlessCheck` (format), `checkstyleMain checkstyleTest` (lint), ArchUnit tests, and the full test suite on every PR and push to main with changes under `server/**`. Format and lint jobs MUST run in parallel. Test SHALL depend on format, lint, and ArchUnit all passing.
 
-| Job | Command | Notes |
-|-----|---------|-------|
-| `format` | `./gradlew spotlessCheck` | Fails fast |
-| `lint` | `./gradlew checkstyleMain checkstyleTest` | Parallel with `format` |
-| `archunit` | `./gradlew test --tests '*ArchUnit*'` | Parallel; blocks merge |
-| `test` | `./gradlew test` | Needs `format`, `lint`, `archunit`; Testcontainers; uploads report |
-| `build` | `./gradlew bootJar` | Needs `test`; uploads JAR artifact |
+#### Scenario: PR with formatting errors is blocked
+- GIVEN a PR changes a Java file with incorrect formatting
+- WHEN the server CI workflow runs
+- THEN the `format` job SHALL fail
+- AND the `test` job SHALL be skipped
+- AND the PR SHALL show a failing check
 
-Uses: `actions/checkout@v4`, `actions/setup-java@v4` (temurin, java-21, gradle cache),
-`gradle/actions/setup-gradle@v4`, `working-directory: server`.
+#### Scenario: ArchUnit violation blocks merge
+- GIVEN a PR introduces a cross-context import violation
+- WHEN the server CI workflow runs
+- THEN the `archunit` job SHALL fail
+- AND the PR SHALL be blocked from merging
 
-## App CI (`app-ci.yml`)
+### Requirement: App CI MUST gate on format, lint, typecheck, and test
 
-Triggered on PRs and pushes to main with paths: `app/**`.
+The app CI workflow SHALL run `pnpm format --check`, `pnpm lint`, `pnpm tsc --noEmit`, and `pnpm test` on every PR and push to main with changes under `app/**`. Type checking MUST use strict mode. Test SHALL depend on format, lint, and typecheck all passing.
 
-| Job | Command | Notes |
-|-----|---------|-------|
-| `format` | `pnpm format --check` | Prettier |
-| `lint` | `pnpm lint` | ESLint strict TypeScript |
-| `typecheck` | `pnpm tsc --noEmit` | Full project type check |
-| `test` | `pnpm test` | Jest + RNTL; needs `format`, `lint`, `typecheck` |
+#### Scenario: TypeScript error blocks merge
+- GIVEN a PR introduces a type error
+- WHEN the app CI workflow runs
+- THEN the `typecheck` job SHALL fail
+- AND the PR SHALL be blocked from merging
 
-Uses: `actions/checkout@v4`, `actions/setup-node@v4` (node 22, pnpm cache),
-`working-directory: app`.
+### Requirement: Test reports MUST be uploaded on failure
 
-## CI naming convention
+When the test job fails, the workflow SHALL upload test reports as artifacts so contributors can diagnose failures without re-running locally.
 
-- Workflow files: `server-ci.yml`, `app-ci.yml`
-- Job names: lowercase, hyphenated (`format`, `lint`, `typecheck`, `test`, `build`)
-- Artifact names: `server-test-report`, `server-jar`, `app-coverage`
+#### Scenario: Failed tests produce downloadable artifacts
+- GIVEN a test assertion fails
+- WHEN the test job completes
+- THEN the test report XML SHALL be uploaded as a workflow artifact
+- AND the artifact SHALL be accessible from the GitHub Actions run page
 
-## Acceptance criteria
+### Requirement: Caching MUST be configured for fast repeat runs
 
-- [ ] `server-ci.yml` committed and runs on PRs to main
-- [ ] `app-ci.yml` committed and runs on PRs to main
-- [ ] All jobs pass against current scaffold code
-- [ ] Failed checks block merge (branch protection)
-- [ ] Test reports uploaded as artifacts on failure
-- [ ] Gradle and pnpm caches configured for fast subsequent runs
+The server workflow SHALL use `gradle/actions/setup-gradle@v4` for Gradle caching. The app workflow SHALL use pnpm caching via `actions/setup-node@v4`. Cache keys SHALL include the lockfile hash.
 
-## Out of scope
-
-- `deploy-staging` and `deploy-prod` workflows (separate specs: `deploy-staging.md`, `deploy-prod.md`)
-- Branch protection rules (manual GitHub Settings config)
+#### Scenario: Second CI run is faster than the first
+- GIVEN a prior CI run completed and cached dependencies
+- WHEN a new commit is pushed with the same lockfile
+- THEN dependency installation SHALL hit the cache
+- AND total workflow time SHALL be at least 50% faster than a cold run

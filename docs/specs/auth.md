@@ -1,92 +1,75 @@
-# Spec: Authentication (Account Creation, Login, Token Refresh)
+# Authentication
 
-**Status**: draft
-**Bounded contexts**: user, app
-**Issues**: [#34](https://github.com/guilherme-andrade/polyglot-ai/issues/34), [#35](https://github.com/guilherme-andrade/polyglot-ai/issues/35), [#36](https://github.com/guilherme-andrade/polyglot-ai/issues/36)
+## Purpose
 
-## Overview
+Full authentication flow: email + password account creation, JWT-based login with token management, and silent token refresh for persistent sessions. Tokens MUST be stored in expo-secure-store, never unencrypted storage. The server SHALL rate-limit failed attempts and rotate refresh tokens on each use for security.
 
-Full authentication flow: email + password account creation, JWT-based login/logout,
-and silent token refresh for persistent sessions.
+## Requirements
 
-## Create account (#34)
+### Requirement: User MUST create account with email and password
 
-### UI
-- Email + password + confirm password form
-- Validation: email format, password strength (min 8 chars, 1 letter, 1 number), passwords match
-- On success: account created in pending state, verification email sent, redirect to login
+The app SHALL present an email + password + confirm password registration form. Server-side validation MUST reject invalid emails, weak passwords (fewer than 8 characters or missing a letter/number), and duplicate emails. On success, the account SHALL be created with BCrypt-hashed password and a verification email sent.
 
-### Server
-- `POST /api/auth/register` — creates user with encrypted password (BCrypt)
-- Email must be unique (409 Conflict if duplicate)
-- Email verification token generated and stored
-- Welcome email sent (stub in dev)
+#### Scenario: Duplicate email is rejected
+- GIVEN a user account with email `test@polyglot.ai` exists
+- WHEN registration is attempted with the same email
+- THEN the server SHALL return 409 Conflict
+- AND the message SHALL say "An account with this email already exists"
 
-### Error handling
-- Duplicate email: "An account with this email already exists"
-- Weak password: "Password must be at least 8 characters with a letter and a number"
-- Network failure: "Unable to connect. Check your internet connection."
+#### Scenario: Weak password is rejected
+- GIVEN the registration form is submitted
+- WHEN the password is "12345678" (no letter)
+- THEN the server SHALL return 400 Bad Request
+- AND the message SHALL indicate password strength requirements
 
-## Login (#35)
+### Requirement: User MUST log in with email and password to receive JWT tokens
 
-### UI
-- Email + password form
-- "Forgot password?" link (deferred to post-v1)
-- On success: tokens stored in expo-secure-store, redirect to app shell
-- Invalid credentials: generic error ("Invalid email or password") — don't leak which is wrong
+The login form SHALL accept email and password. On valid credentials, the server SHALL return a short-lived access token (15 min) and a long-lived refresh token (30 days). Invalid credentials SHALL produce a generic error that does not reveal which field is wrong.
 
-### Server
-- `POST /api/auth/login` — validates credentials, returns access + refresh tokens
-- Access token: short-lived (15 min), signed JWT
-- Refresh token: long-lived (30 days), opaque, stored hashed in DB
-- Rate limiting: 5 failed attempts per 15 min per IP (429 if exceeded)
+#### Scenario: Valid credentials return tokens
+- GIVEN a verified user exists
+- WHEN login is submitted with correct email and password
+- THEN the server SHALL return access and refresh tokens
+- AND the app SHALL store both tokens in expo-secure-store
 
-### Logout
-- App: clear tokens from expo-secure-store, clear Apollo cache, redirect to login
-- Server: `POST /api/auth/logout` — invalidates refresh token
+#### Scenario: Five failed attempts triggers rate limiting
+- GIVEN a user enters wrong credentials
+- WHEN 5 failed attempts occur from the same IP within 15 minutes
+- THEN the server SHALL return 429 Too Many Requests
 
-## Silent token refresh (#36)
+### Requirement: Access token MUST be attached to every request via Apollo AuthLink
 
-### Flow
-1. Apollo AuthLink attaches access token to every GraphQL request
-2. On 401 response, AuthLink calls `POST /api/auth/refresh` with refresh token
-3. On success: new access + refresh tokens returned, old refresh token invalidated (rotation)
-4. Failed request retried with new access token (exactly once — no infinite loops)
-5. On refresh failure: clear tokens, redirect to login
+An Apollo auth link middleware SHALL attach the access token to every GraphQL request. TanStack Query REST calls SHALL use the same token from expo-secure-store. On 401, the auth link SHALL attempt a silent refresh exactly once before redirecting to login.
 
-### TanStack Query side
-- REST calls use the same token store
-- `useRefreshToken` hook available for manual refresh
-- Auth state in Zustand: `isAuthenticated`, `isLoading`, `currentUser`
+#### Scenario: Expired token triggers silent refresh
+- GIVEN an expired access token and a valid refresh token
+- WHEN a GraphQL request returns 401
+- THEN the auth link SHALL call `POST /api/auth/refresh`
+- AND on success, retry the failed request with the new access token
+- AND the old refresh token SHALL be invalidated
 
-### Server
-- `POST /api/auth/refresh` — validates refresh token, issues new pair
-- Refresh token rotation: each refresh returns a new refresh token and invalidates the old one
-- Detect refresh token reuse (stolen token) → invalidate all tokens for that user, force re-login
+#### Scenario: Refresh token reuse triggers full re-login
+- GIVEN a refresh token that was already used (potential theft)
+- WHEN `POST /api/auth/refresh` is called with that token
+- THEN the server SHALL invalidate ALL tokens for that user
+- AND the server SHALL return 401
 
-## Token storage
+### Requirement: Logout MUST clear all tokens
 
-- expo-secure-store for access + refresh tokens (encrypted on device)
-- Never store tokens in AsyncStorage (unencrypted)
+On logout, the app SHALL clear tokens from expo-secure-store, clear the Apollo Client cache, and redirect to the login screen. The server SHALL invalidate the refresh token.
 
-## Acceptance criteria
+#### Scenario: Logout removes local state
+- GIVEN a user is authenticated
+- WHEN logout is triggered
+- THEN expo-secure-store SHALL be cleared of tokens
+- AND the Zustand auth store SHALL set `isAuthenticated: false`
 
-- [ ] Create account form with validation (#34)
-- [ ] Server: `/api/auth/register` creates user, returns success
-- [ ] Duplicate email and weak password handled with clear errors
-- [ ] Login form with email + password (#35)
-- [ ] Server: `/api/auth/login` returns access + refresh tokens
-- [ ] Rate limiting on failed login attempts
-- [ ] Logout clears tokens and redirects (#35)
-- [ ] Apollo AuthLink attaches token and handles 401 with refresh (#36)
-- [ ] Refresh token rotation implemented server-side (#36)
-- [ ] Stolen refresh token detection invalidates all user tokens (#36)
-- [ ] Tokens stored in expo-secure-store, never AsyncStorage
-- [ ] Auth state in Zustand store
+### Requirement: Auth state MUST live in a Zustand store
 
-## Out of scope
+A Zustand store SHALL track `isAuthenticated`, `isLoading`, and `currentUser`. This store SHALL NOT hold tokens — tokens SHALL only exist in expo-secure-store.
 
-- Social login (Google, Apple) — post-v1
-- "Forgot password" flow — post-v1
-- Email verification (stub the email send, verify the token flow works)
-- Biometric unlock to access tokens
+#### Scenario: App initialisation checks for existing tokens
+- GIVEN valid tokens exist in expo-secure-store
+- WHEN the app starts
+- THEN the Zustand store SHALL set `isAuthenticated: true`
+- AND `currentUser` SHALL be populated

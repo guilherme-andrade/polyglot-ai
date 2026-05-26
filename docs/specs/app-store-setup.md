@@ -1,41 +1,44 @@
-# Spec: App Store Connect & Google Play Console Setup
+# App Store Setup
 
-**Status**: draft
-**Bounded contexts**: devops
-**Issue**: [#32](https://github.com/guilherme-andrade/polyglot-ai/issues/32)
-**Depends on**: `app-scaffold.md`, `eas-build-config.md`
+## Purpose
 
-## Overview
+Create placeholder app listings on App Store Connect and Google Play Console so preview builds have distribution targets. Screenshots and polished descriptions SHALL come later — this spec covers only the minimum registration and provisioning needed for the build pipeline to work.
 
-Create app listings on both stores so preview builds have somewhere to go.
-Placeholder listings only — screenshots and polished descriptions come later.
+## Requirements
 
-## App Store Connect
+### Requirement: App MUST be registered on App Store Connect with bundle ID
 
-- App registration with bundle ID: `ai.polyglot.app`
-- iOS provisioning profiles: development, ad-hoc (preview), App Store (production)
-- TestFlight internal testing group: "Polyglot Team"
-- Placeholder metadata: name, description, privacy policy URL
+An app registration SHALL be created on App Store Connect with bundle ID `ai.polyglot.app`. iOS provisioning profiles for development, ad-hoc (preview), and App Store (production) MUST be created and available to EAS. A TestFlight internal testing group named "Polyglot Team" SHALL be created.
 
-## Google Play Console
+#### Scenario: EAS build can use App Store provisioning profile
+- GIVEN the app is registered on App Store Connect
+- WHEN `eas build --profile production` is run for iOS
+- THEN it SHALL use the App Store provisioning profile
+- AND the signed IPA SHALL be submittable to the App Store
 
-- App registration with application ID: `ai.polyglot.app`
-- Signing keys: let Google manage (Play App Signing)
-- Internal testing track: "polyglot-team"
-- Placeholder store listing: name, short description, content rating
+### Requirement: App MUST be registered on Google Play Console with signing configured
 
-## Acceptance criteria
+An app registration SHALL be created on Google Play Console with application ID `ai.polyglot.app`. Google Play App Signing SHALL be enabled (let Google manage keys). An internal testing track named "polyglot-team" SHALL be created.
 
-- [ ] App Store Connect: app registered, bundle ID reserved
-- [ ] Apple: provisioning profiles created and available in EAS
-- [ ] Google Play Console: app registered, signing configured
-- [ ] TestFlight internal testing group created
-- [ ] Google Play internal testing track created
-- [ ] Both stores have placeholder listings (name + description)
-- [ ] Store credentials (API keys, etc.) stored in GitHub Secrets
+#### Scenario: Internal test track receives preview builds
+- GIVEN the internal testing track exists
+- WHEN a preview build is uploaded
+- THEN testers on the track SHALL receive the update
 
-## Out of scope
+### Requirement: Placeholder store listings MUST exist
 
-- Screenshots and promotional materials
-- Full privacy policy (placeholder URL → real page)
-- App review submission (only when we have a production build)
+Both stores SHALL have placeholder listings with the app name and a brief description. Full screenshots and promotional content SHALL be out of scope.
+
+#### Scenario: Placeholder listing is visible to internal testers
+- GIVEN a placeholder listing exists on TestFlight
+- WHEN an internal tester views the app
+- THEN they SHALL see the app name and placeholder description
+
+### Requirement: Store credentials MUST be stored in GitHub Secrets
+
+App Store Connect API keys, Google Play service account JSON, and any other store credentials SHALL be stored in GitHub Secrets. No credentials SHALL be committed.
+
+#### Scenario: EAS build uses credentials from CI
+- GIVEN store credentials exist in GitHub Secrets
+- WHEN a CI-triggered build runs
+- THEN EAS SHALL authenticate using those credentials

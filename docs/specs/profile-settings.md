@@ -1,70 +1,70 @@
-# Spec: Profile & Settings
+# Profile & Settings
 
-**Status**: draft
-**Bounded contexts**: user
-**Issues**: [#53](https://github.com/guilherme-andrade/polyglot-ai/issues/53), [#54](https://github.com/guilherme-andrade/polyglot-ai/issues/54)
+## Purpose
 
-## Overview
+The Profile screen SHALL display and allow editing of account information, preferences, and learning settings. Daily goal setting MUST be configurable here with options from 1 to 5 lessons per day. Sensitive operations like email and password change SHALL require re-authentication.
 
-Profile screen for viewing and editing account information, preferences, and
-learning settings. Accessible from the Profile tab (3rd tab in bottom nav).
+## Requirements
 
-## Profile view (#53)
+### Requirement: Profile MUST display avatar, name, email, language, and level
 
-### Display fields
-- Avatar (image or initials fallback)
-- Display name
-- Email
-- Target language (with flag)
-- Skill level (CEFR)
-- Member since (date)
+The profile screen SHALL display: avatar (image or initials fallback), display name, email, target language with flag, CEFR skill level, and member since date.
 
-### Editable fields
-- Display name (inline edit)
-- Avatar (photo picker or initials fallback)
-- Target language (change with warning: "Progress is per-language. Starting a new language creates a separate profile.")
-- Email (change requires re-verification)
-- Password change (current password + new password + confirm)
+#### Scenario: Initials shown when no avatar set
+- GIVEN the user has not uploaded an avatar
+- WHEN the profile screen renders
+- THEN the user's initials SHALL be displayed in a colored circle
 
-## Daily goal setting (#54)
+### Requirement: Display name and avatar MUST be editable
 
-### Located in Profile → Learning Settings
-- Default: 1 lesson per day
-- Options: 1, 2, 3, or 5 lessons per day
-- Goal displayed on Learn tab with progress ring (e.g. "2/3 today")
-- Push notification frequency respects the goal (remind until goal met)
-- Can be changed anytime
+The user SHALL edit their display name inline (tap to edit). The avatar SHALL be changeable via photo picker. If no photo is selected, initials fallback SHALL be used.
 
-## Server
+#### Scenario: Tapping name enables inline editing
+- GIVEN the user views their profile
+- WHEN they tap their display name
+- THEN an inline text input SHALL appear
+- AND the name SHALL persist on save
 
-- `GET /api/user/profile` → profile data
-- `PUT /api/user/profile` → update name, avatar
-- `PUT /api/user/preferences` → update language, daily goal, notification settings
-- `PUT /api/user/change-password` → password change
-- `PUT /api/user/change-email` → email change (triggers re-verification)
+### Requirement: Target language change MUST show a warning
 
-## UI
+The user MAY change their target language from Profile. Changing the language SHALL show a warning: "Progress is per-language. Starting a new language creates a separate profile." The user MUST confirm before the change takes effect.
 
-- Profile tab: avatar, name, stats summary at top; settings sections below
-- Settings sections: Account, Learning, Notifications, About
-- Inline editing where possible (tap to edit name)
-- Modal/sheet for password change, email change
+#### Scenario: Language change requires confirmation
+- GIVEN the user selects a new target language
+- WHEN they attempt to save
+- THEN a confirmation dialog SHALL appear with the warning
+- AND the change SHALL only apply after confirmation
 
-## Acceptance criteria
+### Requirement: Email change MUST require re-verification
 
-- [ ] Profile displays: avatar, name, email, target language, skill level (#53)
-- [ ] Display name editable inline
-- [ ] Avatar: photo picker + initials fallback
-- [ ] Target language changeable with warning
-- [ ] Email change with re-verification flow
-- [ ] Password change: current + new + confirm
-- [ ] Daily goal selector: 1/2/3/5 lessons per day (#54)
-- [ ] Daily goal shown on Learn tab with progress ring
-- [ ] Goal respects push notification frequency
+When the user changes their email, the server SHALL send a verification email to the new address. The change SHALL NOT take effect until verified.
 
-## Out of scope
+#### Scenario: Email change triggers verification
+- GIVEN the user enters a new email address
+- WHEN they save
+- THEN a verification email SHALL be sent to the new address
+- AND the old email SHALL remain active until verification completes
 
-- Account deletion (GDPR requirement — add before public launch)
-- Data export
-- Multiple target languages simultaneously
-- Social account linking
+### Requirement: Password change MUST require current password
+
+The password change flow SHALL require: current password, new password, and new password confirmation. The new password MUST meet the same strength requirements as registration.
+
+#### Scenario: Wrong current password blocks change
+- GIVEN the user enters an incorrect current password
+- WHEN the password change is submitted
+- THEN the server SHALL return 400
+- AND the message SHALL say "Current password is incorrect"
+
+### Requirement: Daily goal MUST be configurable from 1 to 5 lessons
+
+The daily goal selector SHALL offer options: 1, 2, 3, or 5 lessons per day. Default is 1. The goal SHALL be displayed on the Learn tab with a progress ring (e.g. "2/3 today"). Push notifications SHALL respect the goal (remind until goal met).
+
+#### Scenario: Progress ring reflects daily goal
+- GIVEN the daily goal is set to 3 and the user has completed 2 lessons
+- WHEN the Learn tab renders
+- THEN the progress ring SHALL show 2/3 (67% filled)
+
+#### Scenario: Goal change takes effect immediately
+- GIVEN the user changes daily goal from 1 to 3
+- WHEN they save and return to the Learn tab
+- THEN the progress ring SHALL now target 3 lessons

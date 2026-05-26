@@ -1,92 +1,74 @@
-# Spec: React Native App Scaffold
+# App Scaffold
 
-**Status**: draft
-**Bounded contexts**: app (cross-cutting)
-**Issue**: [#23](https://github.com/guilherme-andrade/polyglot-ai/issues/23)
-**Depends on**: ADR-0002 (Tech Stack), ADR-0008 (Cross-Context Contracts)
+## Purpose
 
-## Overview
+Scaffold the React Native (Expo) mobile app with the agreed stack — Expo SDK 52+, TypeScript strict, Expo Router, NativeWind, Apollo Client (GraphQL), TanStack Query (REST), and Zustand (UI state). The scaffold MUST provide a working dev environment that passes all CI gates so every subsequent feature has a solid foundation.
 
-Scaffold the React Native (Expo) mobile app with the agreed stack: Expo SDK 52+,
-TypeScript strict, Expo Router, NativeWind, Apollo Client (GraphQL), TanStack
-Query (REST), Zustand (UI state).
+## Requirements
 
-## Stack
+### Requirement: Project MUST use Expo SDK 52+ with TypeScript strict mode
 
-| Concern | Choice |
-|---------|--------|
-| Runtime | Expo SDK 52+ managed workflow, TypeScript strict |
-| Navigation | Expo Router (file-based) |
-| Styling | NativeWind (Tailwind for RN) |
-| GraphQL | Apollo Client (queries, mutations, cache, optimistic updates) |
-| REST | TanStack Query (auth endpoints, file uploads) |
-| UI state | Zustand (tabs, onboarding step, theme — nothing from server) |
-| Codegen | GraphQL Code Generator → typed hooks |
-| Testing | Jest + React Native Testing Library |
+The app SHALL be initialised with Expo SDK 52 or later in managed workflow. TypeScript strict mode MUST be enabled in tsconfig.json and enforced in CI via `tsc --noEmit`.
 
-## Folder structure
+#### Scenario: TypeScript strict mode is enabled
+- GIVEN the app scaffold exists
+- WHEN `pnpm tsc --noEmit` is run
+- THEN it SHALL exit with code 0
+- AND no implicit `any` types SHALL be present
 
-```
-app/
-├── src/
-│   ├── app/                  # Expo Router file-based routes
-│   │   ├── _layout.tsx        # Root layout (providers, auth gate)
-│   │   ├── index.tsx          # Entry redirect
-│   │   ├── (auth)/            # Login, register screens
-│   │   └── (tabs)/            # Main tab navigator
-│   │       ├── _layout.tsx    # Tab bar layout
-│   │       ├── learn/         # Daily lesson
-│   │       ├── progress/      # Curriculum, stats
-│   │       └── profile/       # Settings, profile
-│   ├── features/              # Feature modules (self-contained)
-│   ├── components/            # Shared UI library
-│   ├── services/
-│   │   ├── apollo/            # Apollo Client setup, links, cache
-│   │   └── api/               # REST client + TanStack Query hooks
-│   ├── hooks/                 # Shared hooks
-│   ├── stores/                # Zustand stores
-│   ├── lib/                   # Utilities, constants, types
-│   └── graphql/               # Auto-generated types + hooks (do not edit)
-├── codegen.ts                 # GraphQL Code Generator config
-├── app.json                   # Expo config
-├── tsconfig.json
-└── package.json
-```
+### Requirement: Expo Router MUST provide file-based navigation
 
-## Apollo Client setup
+Navigation SHALL use Expo Router with file-based routing. The root layout MUST wrap the app in providers (Apollo, TanStack Query, Zustand) and an auth gate that redirects unauthenticated users to login.
 
-- HttpLink → GraphQL endpoint (staging/prod from env)
-- AuthLink middleware: attaches access token; on 401, triggers token refresh via REST, retries
-- InMemoryCache with type policies per bounded context entity
-- Persisted cache (AsyncStorage wrapper) — survives app restart
-- Error link: logs, surfaces network errors to global toast
+#### Scenario: Unauthenticated user is redirected to login
+- GIVEN the app is launched and no auth token exists
+- WHEN the root layout renders
+- THEN the user SHALL be redirected to the (auth) route group
 
-## REST / TanStack Query setup
+### Requirement: Apollo Client MUST be configured for GraphQL with auth link
 
-- QueryClient with default stale time and retry config
-- Auth hooks: `useLogin`, `useRegister`, `useRefreshToken`, `useLogout`
-- File upload hook: `useUploadFile`
-- expo-secure-store for access + refresh tokens
-- Auth state in Zustand store: `currentUser`, `isAuthenticated`, `isLoading`
+Apollo Client SHALL use an HttpLink pointing to the GraphQL endpoint from environment config. An auth link middleware MUST attach the access token to every request. On 401, the middleware SHALL trigger a token refresh via REST and retry the failed query exactly once.
 
-## Environment config
+#### Scenario: Expired token triggers silent refresh
+- GIVEN a valid refresh token is stored
+- WHEN a GraphQL request returns 401
+- THEN the auth link SHALL call the refresh endpoint
+- AND on success, retry the original query with the new access token
+- AND on failure, clear tokens and redirect to login
 
-- `.env.example` with `API_URL`, `GRAPHQL_URL`
-- EAS Build picks env vars per profile
+### Requirement: TanStack Query MUST handle REST auth endpoints
 
-## Acceptance criteria
+TanStack Query SHALL be configured with a QueryClient for REST endpoints (login, register, refresh, file upload). Auth hooks (`useLogin`, `useRegister`, `useRefreshToken`, `useLogout`) MUST wrap these endpoints. Tokens SHALL be stored in expo-secure-store, never AsyncStorage.
 
-- [ ] `pnpm install && pnpm start` launches Expo dev server
-- [ ] `pnpm test` runs and passes (at least one smoke test)
-- [ ] `pnpm lint` and `pnpm format` run clean
-- [ ] `tsc --noEmit` passes with strict mode
-- [ ] Apollo Client wired with auth link and persisted cache
-- [ ] TanStack Query wired with auth hooks
-- [ ] Zustand store for auth state
-- [ ] GraphQL Codegen configured and generates typed hooks
-- [ ] Folder structure follows `docs/architecture.md`
+#### Scenario: Login flow stores tokens securely
+- GIVEN valid email and password
+- WHEN `useLogin` is called
+- THEN access and refresh tokens SHALL be stored in expo-secure-store
+- AND auth state in Zustand SHALL update to authenticated
 
-## Out of scope
+### Requirement: Zustand MUST own UI-only state
 
-- Actual screen implementations (those are feature specs)
-- EAS Build configuration (separate spec: `eas-build.md`)
+Zustand SHALL manage only UI state (auth status, active tab, onboarding step, theme preference). Server state MUST go through Apollo Client or TanStack Query, not Zustand.
+
+#### Scenario: Auth state reflects token presence
+- GIVEN tokens are stored in secure storage
+- WHEN the app initialises
+- THEN the Zustand auth store SHALL set `isAuthenticated: true`
+
+### Requirement: GraphQL Code Generator MUST produce typed hooks
+
+The project SHALL include a `codegen.ts` configuration that watches the server GraphQL schema and generates TypeScript types plus typed hooks for every query and mutation.
+
+#### Scenario: Codegen runs without errors
+- GIVEN the server GraphQL schema is accessible
+- WHEN `pnpm codegen` is run
+- THEN typed hooks SHALL be generated in `src/graphql/`
+
+### Requirement: Project MUST follow the folder structure from architecture.md
+
+The scaffold SHALL create the folder structure defined in `docs/architecture.md`: features (self-contained), components (shared UI), services (apollo + api), hooks, stores, lib. Features MUST NOT import from other features.
+
+#### Scenario: Folder structure matches architecture
+- GIVEN the scaffold is complete
+- WHEN `ls app/src/` is run
+- THEN `app/`, `features/`, `components/`, `services/`, `hooks/`, `stores/`, `lib/` SHALL all exist

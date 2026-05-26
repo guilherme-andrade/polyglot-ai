@@ -1,36 +1,35 @@
-# Spec: server/.env.example Template
+# server/.env.example Template
 
-**Status**: draft
-**Bounded contexts**: server (infrastructure)
-**Issue**: [#58](https://github.com/guilherme-andrade/polyglot-ai/issues/58)
+## Purpose
 
-## Overview
+A new contributor MUST be able to set up their development environment without reading `application.yml`. The `.env.example` file SHALL list every environment variable the server references, with placeholder values and one-line comments. Real secrets SHALL NOT appear in the example file.
 
-Create `server/.env.example` listing every env var referenced from `application.yml`
-with placeholder values and comments. A new contributor should not have to read
-`application.yml` to figure out what env vars exist.
+## Requirements
 
-## Env vars
+### Requirement: .env.example MUST list every env var from application.yml
 
-```bash
-# PostgreSQL (matches docker-compose.yml; host port 5433 avoids local conflict)
-POLYGLOT_DB_URL=jdbc:postgresql://localhost:5433/polyglot
-POLYGLOT_DB_USER=polyglot
-POLYGLOT_DB_PASSWORD=polyglot
+`server/.env.example` SHALL contain entries for: `POLYGLOT_DB_URL`, `POLYGLOT_DB_USER`, `POLYGLOT_DB_PASSWORD` (PostgreSQL), `POLYGLOT_MONGO_URI` (MongoDB), `POLYGLOT_JWT_ISSUER_URI` (JWT — blank for local dev), and `POLYGLOT_PORT` (server port). Each entry SHALL have a one-line comment.
 
-# MongoDB
-POLYGLOT_MONGO_URI=mongodb://localhost:27017/polyglot
+#### Scenario: New contributor copies .env.example and starts the server
+- GIVEN a new contributor clones the repo
+- WHEN they run `cp server/.env.example server/.env` and start docker compose
+- THEN the server SHALL start with those values
+- AND the contributor SHALL NOT need to read application.yml
 
-# JWT — leave issuer blank in local dev to skip OAuth2 resource server
-POLYGLOT_JWT_ISSUER_URI=
+### Requirement: .env MUST be in server/.gitignore
 
-# Server port
-POLYGLOT_PORT=8080
-```
+`server/.gitignore` SHALL contain a rule ignoring `.env` files so real values are never committed. This SHALL be verified — the scaffold already includes this rule.
 
-## Acceptance criteria
+#### Scenario: .env is ignored by git
+- GIVEN `.env` exists in `server/`
+- WHEN `git status` is run
+- THEN `.env` SHALL NOT appear as an untracked file
 
-- [ ] `server/.env.example` committed with every env var from `application.yml`
-- [ ] `server/README.md` mentions copying `.env.example` to `.env` for local overrides
-- [ ] `server/.gitignore` ignores `.env` (verify)
-- [ ] No real secrets in the example file (placeholders only)
+### Requirement: README MUST reference .env.example
+
+`server/README.md` SHALL include a section telling developers to copy `.env.example` to `.env` for local overrides. `.env.example` SHALL be documented as the source of truth for available environment variables.
+
+#### Scenario: README points to .env.example
+- GIVEN a contributor reads the server README
+- WHEN they look for environment setup instructions
+- THEN they SHALL see instructions to copy `.env.example` to `.env`

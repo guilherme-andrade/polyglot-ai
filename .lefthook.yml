@@ -1,0 +1,12 @@
+pre-commit:
+  parallel: true
+  commands:
+    lint-specs:
+      glob: "docs/specs/*.md"
+      run: node scripts/lint-specs.js {staged_files}
+      fail_text: "Specs must follow OpenSpec format. Run 'node scripts/lint-specs.js' for details."
+
+    lint-adrs:
+      glob: "docs/architecture/adr/*.md"
+      run: node scripts/lint-specs.js --adr {staged_files}
+      fail_text: "ADRs must have Status, Date, Context, Decision, and Consequences sections."

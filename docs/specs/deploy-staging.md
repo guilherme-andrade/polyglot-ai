@@ -1,55 +1,48 @@
-# Spec: Staging Deployment Pipeline
+# Staging Deployment Pipeline
 
-**Status**: draft
-**Bounded contexts**: devops
-**Issue**: [#25](https://github.com/guilherme-andrade/polyglot-ai/issues/25)
-**Depends on**: ADR-0005 (Environments), ADR-0006 (Cloud Provider), `ci-pipelines.md`
+## Purpose
 
-## Overview
+When a PR merges to main and CI passes, the system SHALL automatically deploy to staging with no manual steps. The team MUST be notified on failure. The staging deploy SHALL use the same Docker image and build artifacts validated by CI.
 
-When a PR merges to main and CI passes, automatically deploy to staging for fast
-feedback. No manual steps. Team gets notified on failure.
+## Requirements
 
-## Trigger
+### Requirement: Server MUST auto-deploy to staging VM on merge to main
 
-```yaml
-on:
-  push:
-    branches: [main]
-    paths: ['server/**', 'app/**', '.github/workflows/deploy-staging.yml']
-```
+On push to main with changes under `server/**`, after CI passes, the workflow SHALL build a Docker image, tag it with the git SHA and `staging-latest`, push to the container registry, SSH to the staging VM, pull the image, and restart the container via docker compose.
 
-After `server-ci.yml` and `app-ci.yml` both pass on main.
+#### Scenario: Merge to main triggers staging deploy
+- GIVEN a PR is merged to main that changes server code
+- WHEN the push event fires and CI passes
+- THEN a Docker image SHALL be built and pushed
+- AND the staging VM SHALL pull and restart that image
+- AND a smoke test SHALL verify the health endpoint returns 200
 
-## Server deploy
+### Requirement: App MUST receive OTA update on merge to main
 
-1. Build Docker image from `server/Dockerfile`
-2. Tag with git SHA and `staging-latest`
-3. Push to container registry (Hetzner-hosted or GitHub Container Registry)
-4. SSH to staging VM, pull image, restart container via docker compose
-5. Smoke test: `GET /actuator/health`, basic GraphQL query (`{ __typename }`)
-6. Notify on failure (Slack or GitHub issue)
+On push to main with changes under `app/**`, after CI passes, the workflow SHALL run `eas update` to push the JS bundle OTA to preview builds on the staging channel.
 
-## App deploy (OTA + build)
+#### Scenario: App JS changes reach preview builds automatically
+- GIVEN a PR merges to main that changes app code
+- WHEN CI passes
+- THEN `eas update` SHALL run
+- AND preview builds SHALL receive the update OTA
 
-1. `eas update` — push JS bundle OTA to preview builds (staging channel)
-2. `eas build --profile preview` — new installable for TestFlight / internal testing track (only when native deps change — option, not every deploy)
+### Requirement: Smoke tests MUST pass after deploy
 
-## Environment
+After deploying, the workflow SHALL run smoke tests: `GET /actuator/health` (expect 200) and a basic GraphQL query. If smoke tests fail, the team SHALL be notified.
 
-- `STAGING_HOST`, `STAGING_SSH_KEY`, `STAGING_DB_URL` from GitHub Secrets
-- App points to staging API URL via EAS Build env vars
+#### Scenario: Smoke test failure triggers notification
+- GIVEN the server deployed but the health endpoint returns 500
+- WHEN the smoke test runs
+- THEN the workflow SHALL fail
+- AND a notification SHALL be sent (Slack webhook or GitHub issue)
 
-## Acceptance criteria
+### Requirement: Environment config MUST come from GitHub Secrets
 
-- [ ] `deploy-staging.yml` committed and triggers on push to main
-- [ ] Server: Docker image built, pushed, deployed to staging VM
-- [ ] Smoke tests pass after deploy (return 200)
-- [ ] App: `eas update` runs (stubbed if EAS not configured)
-- [ ] Failure notification wired (Slack webhook or GitHub issue creation)
+`STAGING_HOST`, `STAGING_SSH_KEY`, and `STAGING_DB_URL` SHALL be sourced from GitHub Secrets. No secrets SHALL be committed to the repository.
 
-## Out of scope
-
-- Database migrations (Flyway runs on server startup — if it fails, deploy fails)
-- Rollback (manual for now)
-- Production deploy (separate spec: `deploy-prod.md`)
+#### Scenario: Deploy uses GitHub Secrets for credentials
+- GIVEN the deploy workflow runs
+- WHEN SSH credentials are needed
+- THEN they SHALL be read from `secrets.STAGING_SSH_KEY`
+- AND no key material SHALL appear in workflow logs

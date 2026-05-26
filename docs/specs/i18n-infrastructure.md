@@ -1,63 +1,53 @@
-# Spec: i18n Infrastructure
+# i18n Infrastructure
 
-**Status**: draft
-**Bounded contexts**: app (cross-cutting)
-**Issue**: [#30](https://github.com/guilherme-andrade/polyglot-ai/issues/30)
+## Purpose
 
-## Overview
+Internationalization scaffolding MUST be set up from day one so no user-facing string is ever hardcoded. Retrofitting i18n after building screens is expensive — the scaffolding SHALL be in place before any feature screen is built. Every string MUST go through i18next.
 
-Internationalization scaffolding from day one so strings are never hardcoded.
-Retrofitting i18n after building screens is expensive — set up now, add
-translations progressively.
+## Requirements
 
-## Setup
+### Requirement: i18next MUST be configured with namespace structure
 
-- i18next + react-i18next
-- Namespace structure: `common`, `lesson`, `profile`, `onboarding`, `errors`
-- Fallback language: English (`en`)
-- Type-safe translation keys via TypeScript (autocomplete on `t()` calls)
-- String extraction: script to find missing keys (static analysis)
-- RTL support: i18next language detector sets `dir` attribute (deferred but not blocked)
+The project SHALL install and configure i18next + react-i18next. Five namespaces MUST be defined: `common` (shared UI), `lesson` (exercise prompts), `profile` (settings), `onboarding` (welcome flow), and `errors` (API/validation messages).
 
-## Namespace structure
+#### Scenario: Translation key resolves from correct namespace
+- GIVEN the i18next instance is configured
+- WHEN `t('lesson:exercise.prompt')` is called
+- THEN it SHALL resolve from the `lesson` namespace
+- AND return the English string if the target language key is missing
 
-| Namespace | Scope |
-|-----------|-------|
-| `common` | Shared UI: buttons, labels, errors, navigation |
-| `lesson` | Exercise prompts, feedback, lesson screens |
-| `profile` | Settings, preferences, account |
-| `onboarding` | Welcome flow, language selection, interest picker |
-| `errors` | API errors, validation messages |
+### Requirement: English MUST be the fallback language
 
-## File layout
+English (`en`) SHALL be the fallback language. When a key is missing in the target language, the English value SHALL be returned. No key SHALL silently render empty.
 
-```
-app/src/i18n/
-├── index.ts          # i18next init, language detector
-├── resources/
-│   ├── en/
-│   │   ├── common.json
-│   │   ├── lesson.json
-│   │   ├── profile.json
-│   │   ├── onboarding.json
-│   │   └── errors.json
-│   └── es/           # Example target language
-│       └── common.json
-└── types.ts          # Auto-generated key types
-```
+#### Scenario: Missing Spanish key falls back to English
+- GIVEN the Spanish `common.json` is missing the key `submit`
+- WHEN `t('common:submit')` is called with Spanish locale
+- THEN the English value "Submit" SHALL be returned
 
-## Acceptance criteria
+### Requirement: Translation keys MUST be type-safe
 
-- [ ] i18next + react-i18next installed and configured
-- [ ] All 5 namespaces created with English strings
-- [ ] `useTranslation` hook provides type-safe keys
-- [ ] Fallback to English when key missing in target language
-- [ ] At least one target language namespace populated (Spanish) as proof-of-concept
-- [ ] String extraction script identifies missing keys
-- [ ] No hardcoded user-facing strings in any component
+TypeScript types SHALL be generated from the English translation files so that `t()` calls have autocomplete and compile-time checking. Invalid keys MUST produce a TypeScript error.
 
-## Out of scope
+#### Scenario: Invalid key produces TypeScript error
+- GIVEN type-safe translation keys are configured
+- WHEN a component calls `t('common:nonexistent')`
+- THEN `tsc --noEmit` SHALL report a type error
 
-- Full translations for all languages (add progressively per feature)
-- RTL layout support (post-v1)
-- Automated translation pipeline (manual initially)
+### Requirement: At least one target language MUST be populated
+
+Spanish (`es`) SHALL have the `common` namespace populated as a proof-of-concept. Other namespaces and languages SHALL be added progressively with each feature.
+
+#### Scenario: Spanish common strings are available
+- GIVEN the app is set to Spanish locale
+- WHEN a common UI element like a button renders
+- THEN the button text SHALL display in Spanish
+
+### Requirement: No user-facing string SHALL be hardcoded
+
+Every user-visible string in the app SHALL go through the `t()` function. ESLint rules SHALL flag hardcoded strings in JSX where a translation key is expected.
+
+#### Scenario: Hardcoded string in JSX is flagged
+- GIVEN a component renders `<Text>Welcome back!</Text>`
+- WHEN ESLint runs
+- THEN it SHALL warn that the string should use i18next

@@ -1,74 +1,57 @@
-# Spec: Push Notifications
+# Push Notifications
 
-**Status**: draft
-**Bounded contexts**: gamification, user
-**Issue**: [#55](https://github.com/guilherme-andrade/polyglot-ai/issues/55)
+## Purpose
 
-## Overview
+Daily push notifications SHALL remind users to complete their lesson. Messages MUST be motivational, reference the user's streak, and respect notification permissions. Notifications SHALL be configurable per type (reminder, streak-at-risk, milestone). The system SHALL NOT spam — notifications stop when the daily goal is met.
 
-Daily push notification reminding the user to complete their lesson. Motivational
-messaging that references their streak. Respects notification permissions and
-can be disabled.
+## Requirements
 
-## Notification triggers
+### Requirement: Daily reminder MUST be sent at the user's preferred time
 
-### Daily reminder
-- Sent at user's preferred time (default: 9am local time, configurable in settings)
-- Only sent if user has not completed their daily goal yet
-- Resent once if goal not met by evening (default: 7pm, configurable)
-- Stops when daily goal is met
+A daily reminder notification SHALL be sent at the user's preferred time (default 9am local). It SHALL only fire if the daily goal has not been met. An evening reminder SHALL fire at 7pm if the goal is still not met. Both times SHALL be configurable.
 
-### Streak at-risk
-- If it's 8pm and user hasn't completed a lesson, send "Streak is at risk!" notification
-- References current streak count: "Don't lose your 12-day streak!"
+#### Scenario: Morning reminder fires when goal not met
+- GIVEN the user's reminder time is 9am and they haven't completed a lesson
+- WHEN 9am arrives in the user's timezone
+- THEN a notification SHALL be delivered: "Time to learn! Your daily Spanish lesson is waiting."
 
-### Milestone celebration
-- When streak hits a milestone (7, 30, 100 days), send celebratory notification
-- Example: "7-day streak! You're on fire!"
+#### Scenario: No reminder when goal already met
+- GIVEN the user completed their daily goal at 8:30am
+- WHEN the 9am reminder is scheduled
+- THEN no notification SHALL be sent
 
-## Message templates
+### Requirement: Streak-at-risk notification MUST fire at 8pm
 
-| Trigger | Title | Body |
-|---------|-------|------|
-| Morning reminder | "Time to learn!" | "Your daily {language} lesson is waiting. Keep your {N}-day streak going!" |
-| Evening reminder | "Still time to learn" | "Complete today's lesson to keep your {N}-day streak alive!" |
-| Streak at-risk | "Don't lose your streak!" | "You have {N} hours left to practice {language} today." |
-| Milestone | "{N} day streak!" | "Amazing! You've been learning {language} for {N} days in a row." |
-| Goal met | "Daily goal complete!" | "Great work! You completed {N}/{M} lessons today. +{XP} XP earned." |
+If the user has not completed a lesson by 8pm, a streak-at-risk notification SHALL fire referencing the current streak: "Don't lose your 12-day streak!" This SHALL be configurable (on/off toggle).
 
-## Configuration
+#### Scenario: Streak-at-risk notification fires
+- GIVEN the user has a 12-day streak and has not completed a lesson today
+- WHEN 8pm arrives
+- THEN a notification SHALL be sent: "Don't lose your streak! You have 4 hours left."
 
-- Push notification toggle: on/off (global)
-- Reminder time picker
-- Evening reminder toggle: on/off
-- Streak-at-risk toggle: on/off
-- Milestone celebration toggle: on/off
+### Requirement: Milestone celebration SHALL fire on streak thresholds
 
-All accessible from Profile → Settings → Notifications.
+When a streak milestone is reached (7, 30, 100 days), a celebratory notification SHALL be sent. This SHALL be configurable (on/off toggle).
 
-## Technical
+#### Scenario: 7-day milestone notification
+- GIVEN the user completes a lesson and reaches a 7-day streak
+- WHEN the streak increments
+- THEN a notification SHALL be sent: "7-day streak! You're on fire!"
 
-- Expo Notifications API for local scheduling + remote push
-- Notification token stored server-side (user context)
-- Server schedules/triggers notifications based on user timezone and activity
-- Notification opened → deep link to Learn tab
+### Requirement: Notification preferences MUST be granular
 
-## Acceptance criteria
+The user SHALL toggle each notification type independently: daily reminder (on/off), evening reminder (on/off), streak-at-risk (on/off), and milestone celebrations (on/off). Reminder time SHALL be a time picker. All settings SHALL be in Profile → Settings → Notifications.
 
-- [ ] Daily reminder sent at user's preferred time
-- [ ] Only sent if daily goal not met
-- [ ] Evening reminder if goal still not met
-- [ ] Streak-at-risk notification at 8pm
-- [ ] Milestone celebration notifications
-- [ ] All notification types can be toggled independently
-- [ ] Notification time configurable
-- [ ] Respects device notification permissions
-- [ ] Notification opens app to Learn tab
-- [ ] Messages reference user's streak and target language
+#### Scenario: User disables all notifications
+- GIVEN the user toggles all notification types off
+- WHEN the next notification event occurs
+- THEN no notification SHALL be delivered
 
-## Out of scope
+### Requirement: Notifications MUST use Expo Notifications API
 
-- Push notification A/B testing
-- Notification analytics (open rate, etc.)
-- Friend activity notifications
-- New content available notifications
+Notifications SHALL use the Expo Notifications API for local scheduling and remote push. The device push token SHALL be registered with the server on login. Tapping a notification SHALL deep-link to the Learn tab.
+
+#### Scenario: Tapping notification opens Learn tab
+- GIVEN a daily reminder notification is received
+- WHEN the user taps it
+- THEN the app SHALL open to the Learn tab

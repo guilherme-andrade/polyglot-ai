@@ -1,39 +1,27 @@
-# Spec: RabbitMQ Deferred
+# RabbitMQ Deferred
 
-**Status**: draft
-**Bounded contexts**: server (infrastructure)
-**Issue**: [#57](https://github.com/guilherme-andrade/polyglot-ai/issues/57)
+## Purpose
 
-## Overview
+Align `server/README.md` with the manifesto on RabbitMQ's status. The manifesto states "RabbitMQ (if async work needed)" — i.e. deferred. The scaffold ships no AMQP dependency, no docker compose service, and no broker configuration. The README MUST accurately reflect that RabbitMQ is deferred, not active.
 
-Align `server/README.md` with the manifesto on RabbitMQ's status. The manifesto
-says "RabbitMQ (if async work needed)" — i.e. deferred. The scaffold ships no
-AMQP dependency, no compose service, and no broker config. Update the README to
-reflect this accurately.
+## Requirements
 
-## Decision
+### Requirement: README MUST match the manifesto on RabbitMQ status
 
-Defer. No async workloads exist yet that justify the operational cost of a message
-broker.
+`server/README.md` SHALL list RabbitMQ as deferred with a note: "RabbitMQ (deferred — when async work needed)." No code changes, no dependency additions, and no docker compose changes SHALL be made.
 
-## What to do
+#### Scenario: README shows RabbitMQ as deferred
+- GIVEN a contributor reads the server stack table
+- WHEN they look at the messaging row
+- THEN it SHALL say "RabbitMQ (deferred — when async work needed)"
+- AND SHALL NOT imply RabbitMQ is wired and running
 
-1. Update `server/README.md` stack table: `RabbitMQ *(deferred — when async work needed)*`
-2. No code changes, no dependency additions, no docker-compose changes
+### Requirement: No AMQP dependency SHALL be added until an async use case is spec'd
 
-## When to reconsider
+The `spring-boot-starter-amqp` dependency SHALL NOT be added to `build.gradle.kts`. A RabbitMQ service SHALL NOT be added to `docker-compose.yml`. These SHALL only be added when a concrete async workload has a spec and ADR.
 
-Open a new ADR when any of these arise:
-- Multi-step lesson generation (request → queue → generate → notify)
-- Batch content processing
-- Push notification fan-out at scale
-- Cross-context async workflows needing a durable bus
-
-## Acceptance criteria
-
-- [ ] `server/README.md` says RabbitMQ is deferred
-- [ ] Manifesto and README agree on RabbitMQ's status
-
-## Out of scope
-
-- Wiring RabbitMQ (deferred until an actual async use case has a spec)
+#### Scenario: Deferred status remains until a spec exists
+- GIVEN no spec requires async messaging
+- WHEN the project is built
+- THEN no AMQP classes SHALL be on the classpath
+- AND `docker compose up` SHALL start only PostgreSQL and MongoDB

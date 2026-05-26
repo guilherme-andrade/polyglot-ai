@@ -1,63 +1,53 @@
-# Spec: PR Template
+# PR Template
 
-**Status**: draft
-**Bounded contexts**: docs (process)
-**Issue**: [#33](https://github.com/guilherme-andrade/polyglot-ai/issues/33)
+## Purpose
 
-## Overview
+Every pull request MUST use a template that enforces the spec-driven, DDD workflow. The template SHALL guide both human and AI contributors to link their spec, declare bounded contexts touched, and verify pre-flight checks before requesting review.
 
-GitHub PR template that enforces the spec-driven, DDD workflow conventions.
-PRs are the primary review surface — the template guides both human and AI
-contributors.
+## Requirements
 
-## Template path
+### Requirement: Template MUST include spec link section
 
-`.github/pull_request_template.md`
+The PR template SHALL have a section for linking the spec this PR implements, referencing `docs/specs/<name>.md`. If no spec applies (e.g. pure infra chore), the contributor SHALL explain why.
 
-## Template contents
+#### Scenario: PR links to spec
+- GIVEN a PR implements the onboarding feature
+- WHEN the PR is created
+- THEN the description SHALL contain a link to `docs/specs/onboarding.md`
 
-```markdown
-## Spec
-Link to the spec this PR implements:
+### Requirement: Template MUST include bounded context checklist
 
-- `docs/specs/<name>.md`
+The template SHALL list all bounded contexts (`user`, `curriculum`, `content`, `lesson`, `gamification`, `analytics`, `devops`, `app`) as a checklist. The contributor SHALL check all that this PR touches.
 
-## Bounded contexts
-Which bounded contexts does this PR touch?
+#### Scenario: Cross-context PR checks two boxes
+- GIVEN a PR touches both `lesson` and `gamification`
+- WHEN the PR is created
+- THEN both `lesson` and `gamification` SHALL be checked
+- AND a reviewer SHALL verify cross-context contracts are followed
 
-- [ ] `user`
-- [ ] `curriculum`
-- [ ] `content`
-- [ ] `lesson`
-- [ ] `gamification`
-- [ ] `analytics`
-- [ ] `devops` / infra
-- [ ] `app` (cross-cutting)
+### Requirement: Template MUST include pre-flight checklist
 
-## Checklist
-- [ ] Spec linked above
-- [ ] Tests pass (`./gradlew test` / `pnpm test`)
-- [ ] ArchUnit clean (server)
-- [ ] Formatting applied (`spotlessApply` / `prettier`)
-- [ ] TypeScript typecheck clean (`tsc --noEmit`)
-- [ ] Manual test evidence included (curl, screenshot, screen recording)
+The template SHALL include a checklist matching CI gates: spec linked, tests pass, ArchUnit clean, formatting applied, TypeScript typecheck clean, manual test evidence included.
 
-## Evidence
-<!-- Screenshots, curl output, CI results, Playwright traces -->
+#### Scenario: Pre-flight checklist is visible in PR body
+- GIVEN a new PR is created
+- WHEN the template renders
+- THEN the checklist SHALL include: spec linked, tests pass, ArchUnit clean, formatting applied, typecheck clean, manual test evidence
 
-## Breaking changes
-<!-- List any cross-context contract changes. If none, write "None." -->
-```
+### Requirement: Template MUST include evidence and breaking changes sections
 
-## Acceptance criteria
+The template SHALL have an "Evidence" section for screenshots, curl output, CI results, or Playwright traces. A "Breaking changes" section SHALL list cross-context contract changes. If none, the contributor SHALL write "None."
 
-- [ ] `.github/pull_request_template.md` committed
-- [ ] Template includes spec link section
-- [ ] Template includes bounded context checklist
-- [ ] Template includes pre-flight checklist matching CI gates
-- [ ] Template includes evidence and breaking changes sections
-- [ ] PRs created after this automatically get the template
+#### Scenario: UI change includes screenshot evidence
+- GIVEN a PR changes a screen layout
+- WHEN the PR is created
+- THEN the Evidence section SHALL contain a screenshot or screen recording
 
-## Out of scope
+### Requirement: Template SHALL live at .github/pull_request_template.md
 
-- Issue templates (separate task if needed)
+The template file SHALL be at `.github/pull_request_template.md`. GitHub SHALL automatically populate new PRs with this template.
+
+#### Scenario: New PR auto-populates the template
+- GIVEN `.github/pull_request_template.md` exists on main
+- WHEN any contributor opens a PR
+- THEN the PR body SHALL be pre-filled with the template

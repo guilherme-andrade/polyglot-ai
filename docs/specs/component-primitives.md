@@ -1,127 +1,92 @@
-# Spec: Component Primitives
+# Component Primitives
 
-**Status**: draft
-**Bounded contexts**: app (cross-cutting)
-**Issue**: [#29](https://github.com/guilherme-andrade/polyglot-ai/issues/29)
-**Depends on**: `design-tokens.md`
+## Purpose
 
-## Overview
+Build the UI component library on top of design tokens. Every component MUST be accessible (labels, roles, minimum 44pt touch targets), typed with strict TypeScript props, and tested with React Native Testing Library. The library SHALL cover typography, actions, inputs, containers, feedback, navigation, progress indicators, lists, exercise-specific components, and gamification elements.
 
-Build the UI component library on top of design tokens. Every component must be
-accessible, typed, and tested. Duolingo-level polish: playful micro-interactions,
-satisfying feedback animations, clear visual hierarchy, warm tone.
+## Requirements
 
-## Component catalog
+### Requirement: Typography components MUST use design token scale
 
-### Typography
-- **Heading**: h1–h4, each with size/weight/line-height from tokens
-- **Body**: regular, small, caption variants
-- **Label**: for form labels, badges, metadata
-- All accept: `color`, `align`, `numberOfLines`, `accessibilityRole`
+Heading (h1–h4), Body (regular, small), Caption, and Label components SHALL apply typography tokens from the design system. Each SHALL accept `color`, `align`, `numberOfLines`, and `accessibilityRole` props.
 
-### Actions
-- **Button**: primary, secondary, ghost, danger; sm/md/lg; loading (spinner); disabled; full-width; icon + label slots; min 44pt touch target; scale-down press animation
-- **IconButton**: same variants as Button, with accessible label
-- **LinkButton**: inline text-styled tappable
-- **FloatingActionButton**: prominent circular button for primary action
+#### Scenario: h2 renders with correct token
+- GIVEN `<Heading variant="h2">Welcome</Heading>`
+- WHEN the component renders
+- THEN it SHALL apply 22px, bold (700), 28px line height from design tokens
 
-### Inputs
-- **TextInput**: label, placeholder, error, hint, leading/trailing icons, clear button, character count, secure text toggle
-- **SearchInput**: TextInput variant with search icon, debounced onChange, clear
-- **Select**: label, options list with checkmark, error, disabled
-- **Checkbox**: label, checked/unchecked, indeterminate, error
-- **Radio**: radio group with label, description, error
-- **Toggle/Switch**: on/off, label, disabled
+### Requirement: Button MUST have 4 variants, 3 sizes, and loading state
 
-### Containers
-- **Card**: default, elevated, outlined, interactive (tappable with scale); header/body/footer slots; padding variants
-- **ScreenWrapper**: SafeAreaView, keyboard-avoiding, scroll or fixed, loading/error/empty overlay slots
-- **Modal/BottomSheet**: overlay, backdrop, title, close, scrollable content, snap points (25%/50%/90%)
-- **Section**: grouped content with optional header and footer
+Button SHALL support variants: primary, secondary, ghost, danger. Sizes: sm (36px), md (44px), lg (52px). Loading state SHALL show a spinner and disable interaction. Disabled state SHALL reduce opacity. Minimum touch target SHALL be 44pt. Press feedback SHALL be scale-down to 0.97 with spring return.
 
-### Feedback
-- **Toast/Snackbar**: success, error, info, warning; auto-dismiss; action slot; slide-in from top
-- **Alert**: inline banner; icon + title + description + action; dismissible
-- **EmptyState**: illustration, title, description, action button
-- **ErrorState**: icon, title, description, retry action
-- **SkeletonLoader**: shimmer; variants for text, card, circle; matches real component shapes
-- **ConfettiOverlay**: celebration animation for milestones
+#### Scenario: Loading button is not tappable
+- GIVEN `<Button loading>Submit</Button>`
+- WHEN the user taps it
+- THEN no action SHALL fire
+- AND a spinner SHALL be visible inside the button
 
-### Navigation
-- **TabBar**: bottom tabs, icon + label, active/inactive color transition, badge slot, min 44pt
-- **TopBar/Header**: title, back button, trailing actions (max 2); collapsible deferred
-- **Stepper/ProgressDots**: onboarding step indicator; current/complete/upcoming states; animated
+#### Scenario: Primary button uses brand color
+- GIVEN `<Button variant="primary">Start Lesson</Button>`
+- WHEN it renders
+- THEN the background SHALL use the brand primary color token
+- AND text SHALL be white
 
-### Progress & Loading
-- **ProgressBar**: determinate (0–100%) and indeterminate; color variants; animated fill
-- **ProgressRing**: circular; determinate and indeterminate; size variants; animated
-- **ActivityIndicator**: spinner; sm/md/lg
-- **StreakCounter**: flame icon + count; animated increment; frozen/saved state
+### Requirement: TextInput MUST support label, error, hint, and icon slots
 
-### Lists
-- **ListItem**: leading icon/avatar, title, subtitle, trailing element (chevron, badge, toggle, XP); tappable with highlight; swipe actions deferred
-- **SectionList**: grouped with sticky headers; collapsible
+TextInput SHALL render with: label, placeholder, error message (red, below input), hint text, leading icon, trailing icon, clear button, character count, and secure text toggle (for passwords). Error state SHALL show red border and error message.
 
-### Exercise-specific
-- **WordBank**: selectable word tiles for sentence construction; tap to select/deselect; shake on incorrect
-- **MultipleChoiceTile**: tappable card; selected state; correct (green pulse) / incorrect (red shake)
-- **AudioButton**: play/pause with progress ring; waveform animation; speed control
-- **ExercisePrompt**: rendered text with blank slots for fill-in-the-blank
-- **CorrectAnswerOverlay**: green banner; checkmark + correct answer + brief explanation
-- **IncorrectAnswerOverlay**: red banner; correct answer shown; encouragement text
-- **Flashcard**: front/back flip animation; tap to reveal; swipe left/right for "still learning"/"got it"
+#### Scenario: Error state shows red border and message
+- GIVEN `<TextInput error="Email is required" />`
+- WHEN it renders
+- THEN the border SHALL be red (semantic error token)
+- AND "Email is required" SHALL appear below the input
 
-### Gamification
-- **XPCounter**: pill with XP total; animated increment; "+N XP" popup; particle burst on level-up
-- **AchievementBadge**: circular badge; locked (grey) / unlocked (color + glow); unlock animation
-- **LeaderboardRow**: rank, avatar, name, XP; current-user highlight
-- **DailyQuestCard**: quest title, icon, progress bar, XP reward; complete state
+### Requirement: Feedback components MUST cover all states
 
-### Misc
-- **Badge/Chip**: label, icon, color variants; dismissible; scale-down on press
-- **Tag**: shorter chip without icon; outlined or filled
-- **Avatar**: image with initials fallback; sm/md/lg/xl
-- **Divider**: horizontal and vertical; with/without label
-- **LanguageFlag**: circular flag + 2-letter language code overlay
-- **LevelBadge**: CEFR level indicator (A1–C2); colored bar + label
-- **Heart/Lives**: row of heart icons; filled/empty; shake on loss; refill animation
+Toast/Snackbar SHALL support success, error, info, warning variants with auto-dismiss and action slot. EmptyState SHALL have illustration, title, description, and action button slots. ErrorState SHALL include a retry action. SkeletonLoader SHALL provide shimmer variants for text lines, cards, and circles.
 
-### Motion & Micro-interactions
-- Consistent spring animation preset (gentle, medium, bouncy)
-- Press: scale to 0.97 on touch down, spring back on release
-- List entrance: staggered fade+slide (subtle)
-- Haptic feedback on: correct answer, incorrect answer, button press, milestone
+#### Scenario: Toast auto-dismisses after configurable duration
+- GIVEN `<Toast variant="success" duration={3000}>Saved!</Toast>`
+- WHEN it renders
+- THEN it SHALL slide in from the top
+- AND SHALL auto-dismiss after 3 seconds
 
-## Cross-cutting requirements
+### Requirement: Exercise components MUST provide Duolingo-style feedback
 
-- All components: strict TypeScript props, accessibility labels/roles/hints, min 44pt touch targets
-- Unit tests: render + interaction (React Native Testing Library)
-- Follow NativeWind conventions; accept `className` override
-- Support light mode; dark mode prepared (semantic tokens, no hardcoded colors)
-- RTL support: components mirror layout when locale is RTL (post-v1, but don't block it)
+WordBank SHALL render selectable word tiles for sentence construction with tap to select/deselect and shake animation on incorrect. MultipleChoiceTile SHALL show green pulse on correct and red shake on incorrect. ExercisePrompt SHALL render text with inline blank slots for fill-in-the-blank exercises.
 
-## Acceptance criteria
+#### Scenario: WordBank tile shakes on incorrect submission
+- GIVEN the user has selected tiles in wrong order
+- WHEN they submit
+- THEN the tiles SHALL shake
+- AND SHALL return to the word bank area
 
-- [ ] All Typography components implemented and tested
-- [ ] All Action components (Button, IconButton, LinkButton, FAB) implemented and tested
-- [ ] All Input components implemented and tested
-- [ ] All Container components implemented and tested
-- [ ] All Feedback components implemented and tested
-- [ ] All Navigation components implemented and tested
-- [ ] All Progress & Loading components implemented and tested
-- [ ] All List components implemented and tested
-- [ ] All Exercise-specific components implemented and tested
-- [ ] All Gamification components implemented and tested
-- [ ] All Misc components implemented and tested
-- [ ] Motion presets defined and documented
-- [ ] Storybook or equivalent set up for isolated development
-- [ ] Every interactive component has minimum 44pt touch target
-- [ ] Every component has accessibility labels on interactive elements
+### Requirement: Gamification components MUST animate
 
-## Out of scope
+XPCounter SHALL show XP total as a pill with animated increment and "+N XP" popup on earn. AchievementBadge SHALL show locked (grey) and unlocked (color + glow) states with unlock animation. LeaderboardRow SHALL highlight the current user.
 
-- Swipe actions on ListItem (post-v1)
-- Collapsible TopBar (post-v1)
-- Dark mode (post-v1, but semantic tokens ready)
-- RTL language support (post-v1, but layout mirroring prepared)
-- Visual regression tests (post-v1)
+#### Scenario: XPCounter shows animated popup on earn
+- GIVEN the user earns 45 XP
+- WHEN the XPCounter updates
+- THEN a "+45 XP" pill SHALL animate upward and fade out
+- AND the counter SHALL increment from old to new value
+
+### Requirement: Motion presets MUST be consistent across components
+
+The library SHALL define spring animation presets: gentle, medium, bouncy. Press animations SHALL scale to 0.97. Haptic feedback SHALL fire on correct answer, incorrect answer, button press, and milestone.
+
+#### Scenario: All buttons use the same press animation
+- GIVEN any interactive component in the library
+- WHEN pressed
+- THEN it SHALL scale to 0.97 on touch down
+- AND spring back on release
+
+### Requirement: Every interactive component MUST have minimum 44pt touch target
+
+Any tappable element (buttons, list items, checkboxes) SHALL have a minimum 44pt touch target. Accessibility labels, roles, and hints SHALL be set on all interactive elements.
+
+#### Scenario: Small icon button has padded touch area
+- GIVEN an IconButton with a 20px icon
+- WHEN it renders
+- THEN the touchable area SHALL be at least 44pt
+- AND it SHALL have an `accessibilityLabel` prop

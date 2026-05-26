@@ -1,124 +1,74 @@
-# Spec: Lesson Generation & Exercise Types
+# Lesson Generation & Exercise Types
 
-**Status**: draft
-**Bounded contexts**: lesson
-**Issues**: [#45](https://github.com/guilherme-andrade/polyglot-ai/issues/45), [#46](https://github.com/guilherme-andrade/polyglot-ai/issues/46), [#47](https://github.com/guilherme-andrade/polyglot-ai/issues/47)
+## Purpose
 
-## Overview
+One lesson SHALL be generated per user per day from the curriculum's next unit, using content that matches the user's interests and CEFR level. Each lesson MUST include 5–10 exercises mixing vocabulary and grammar. Two exercise types SHALL be supported: multiple-choice and fill-in-the-blank.
 
-Generate a daily lesson from the curriculum's next unit, using content that matches
-the user's interests and current CEFR level. Each lesson has 5–10 exercises
-covering vocabulary and grammar from that content.
+## Requirements
 
-## Daily lesson generation (#45)
+### Requirement: One lesson MUST be generated per user per day
 
-### Trigger
-- User opens the Learn tab and no lesson exists for today
-- Generated fresh each day (one per user per day in v1)
+The lesson engine SHALL generate a lesson when the user opens the Learn tab and no lesson exists for today. Generation is idempotent — no duplicate per day. The lesson SHALL pull from the curriculum's next unit and use content matching the user's interests.
 
-### Lesson structure
-```
-Lesson
-├── Metadata: topic, CEFR level, source content title
-├── Warm-up: 1–2 vocabulary recognition exercises
-├── Core: 3–5 exercises mixing vocabulary + grammar
-└── Challenge: 1–2 harder exercises (next CEFR level)
-```
+#### Scenario: Lesson is generated on first access
+- GIVEN no lesson exists for today
+- WHEN `POST /api/lessons/generate` is called
+- THEN a lesson SHALL be created with 5–10 exercises
+- AND the lesson SHALL reference the curriculum's next unlocked unit
 
-### Generation pipeline
-1. `curriculum.getNextUnit(userId)` → current unit with target vocabulary + grammar
-2. `content.match(language, cefr, topics)` → content items for exercise material
-3. Build exercises from content items targeting unit vocabulary/grammar
-4. Order by difficulty (easy → hard)
-5. Return lesson with exercises to client
+#### Scenario: Second generation attempt is idempotent
+- GIVEN a lesson already exists for today
+- WHEN `POST /api/lessons/generate` is called again
+- THEN the existing lesson SHALL be returned
+- AND no duplicate SHALL be created
 
-### Server
-- `GET /api/lessons/today` → returns today's lesson or 404 (not yet generated)
-- `POST /api/lessons/generate` → generates and persists today's lesson (idempotent — no duplicate per day)
+### Requirement: Lesson MUST be structured warm-up → core → challenge
 
-## Multiple-choice exercise (#46)
+Each lesson SHALL have a warm-up section (1–2 vocabulary recognition exercises), a core section (3–5 exercises mixing vocabulary + grammar), and a challenge section (1–2 harder exercises at the next CEFR level).
 
-### Variants
-| Type | Prompt | Options |
-|------|--------|---------|
-| Translation | See word in TL, pick native equivalent | 1 correct + 3 distractors |
-| Definition | See word in TL, pick definition in TL | 1 correct + 3 distractors |
-| Fill context | Sentence with blank, pick the right word | 1 correct + 3 distractors |
+#### Scenario: Lesson structure follows three-part format
+- GIVEN a lesson is generated for an A2 user
+- WHEN the exercises are ordered
+- THEN the first exercises SHALL be A1/A2 vocabulary recognition
+- AND the last exercises SHALL target B1 level
 
-### Distractor generation
-- Server generates distractors from related vocabulary (same unit, similar CEFR level)
-- Distractors must be plausible but clearly wrong to a learner at that level
+### Requirement: Multiple-choice exercise MUST support 3 variants
 
-### UI
-- Question stem at top
-- 4 tappable options (MultipleChoiceTile component)
-- On select: show correct (green pulse) / incorrect (red shake with correct answer shown)
-- Auto-advance after 1.5s or tap to continue
+Multiple-choice exercises SHALL support: translation (see word in target language, pick native equivalent), definition (see word in target language, pick definition in target language), and fill-context (sentence with blank, pick the right word). Each question MUST have 1 correct answer and 3 plausible distractors.
 
-## Fill-in-the-blank exercise (#47)
+#### Scenario: Correct answer shows green feedback
+- GIVEN a multiple-choice exercise is displayed
+- WHEN the user taps the correct option
+- THEN the option SHALL pulse green
+- AND the exercise SHALL auto-advance after 1.5 seconds
 
-### Variants
-| Type | Prompt | Input |
-|------|--------|-------|
-| Vocabulary | Sentence with target word blanked | Type the missing word |
-| Grammar | Sentence with conjugation/declension blanked | Type the correct form |
-| Listening | Hear audio, type what you hear | Type the phrase (deferred to post-v1) |
+#### Scenario: Incorrect answer shows red feedback with correct answer
+- GIVEN a multiple-choice exercise is displayed
+- WHEN the user taps an incorrect option
+- THEN the tapped option SHALL shake red
+- AND the correct option SHALL be highlighted green
 
-### Typo tolerance
-- Accept answers within Levenshtein distance 1 for words > 5 chars
-- Accept answers within Levenshtein distance 0 for words ≤ 5 chars (exact match)
-- Show correct answer with character diff if wrong
+### Requirement: Fill-in-the-blank exercise MUST be typo-tolerant
 
-### UI
-- ExercisePrompt component: sentence with inline blank
-- TextInput for typing the answer
-- Submit button or keyboard return
-- Feedback: correct (green highlight) / incorrect (red, show correct + diff)
+For words longer than 5 characters, answers within Levenshtein distance 1 SHALL be accepted. For words of 5 or fewer characters, exact match is required. Incorrect answers SHALL show the correct answer with a character diff.
 
-## Data model
+#### Scenario: Minor typo in long word is accepted
+- GIVEN the correct answer is "cocinar" (7 chars)
+- WHEN the user types "cozinar" (Levenshtein distance 1)
+- THEN the answer SHALL be accepted as correct
 
-```java
-// Simplified — full model in ADR-0007
-@Entity
-public class Lesson {
-    UUID id;
-    UUID userId;
-    LocalDate date;
-    String unitId;
-    String sourceContentTitle;
-    List<Exercise> exercises;
-    LessonStatus status; // GENERATED, IN_PROGRESS, COMPLETED
-}
+#### Scenario: Exact match required for short words
+- GIVEN the correct answer is "el" (2 chars)
+- WHEN the user types "la"
+- THEN the answer SHALL be marked incorrect
+- AND the correct answer SHALL be shown
 
-@Entity
-public class Exercise {
-    UUID id;
-    ExerciseType type; // MULTIPLE_CHOICE, FILL_IN_BLANK
-    String prompt;
-    String correctAnswer;
-    List<String> options; // for multiple choice
-    String contextSentence; // from source content
-}
-```
+### Requirement: Distractors MUST be plausible but clearly wrong
 
-## Acceptance criteria
+The server SHALL generate distractors from related vocabulary (same unit, similar CEFR level). Distractors MUST be plausible at a glance but clearly wrong to a learner at that level.
 
-- [ ] One lesson generated per user per day (#45)
-- [ ] Lesson pulls from curriculum's next unit
-- [ ] Exercises built from content matching user's interests
-- [ ] Lesson difficulty calibrated to user's CEFR level
-- [ ] 5–10 exercises per lesson covering vocabulary + grammar
-- [ ] Multiple-choice: 3 variants (translation, definition, fill context) (#46)
-- [ ] Multiple-choice: plausible distractors from related vocabulary
-- [ ] Multiple-choice: visual feedback on selection (green/red)
-- [ ] Fill-in-the-blank: 2 variants (vocabulary, grammar) (#47)
-- [ ] Fill-in-the-blank: typo tolerance (Levenshtein ≤1)
-- [ ] Fill-in-the-blank: correct answer with diff shown on error
-- [ ] GraphQL: query today's lesson, submit exercise answers
-
-## Out of scope
-
-- Listening exercises (post-v1)
-- Speaking/pronunciation exercises (post-v1)
-- User-adjusted lesson difficulty
-- Multiple lessons per day (M3 feature)
+#### Scenario: Distractors come from same vocabulary unit
+- GIVEN a multiple-choice question testing the word "cocinar" (A1, cooking unit)
+- WHEN distractors are generated
+- THEN they SHALL come from the same A1 cooking vocabulary unit
+- AND SHALL NOT be from unrelated units or CEFR levels

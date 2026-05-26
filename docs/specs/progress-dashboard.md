@@ -1,71 +1,55 @@
-# Spec: Progress Dashboard
+# Progress Dashboard
 
-**Status**: draft
-**Bounded contexts**: user, gamification, curriculum
-**Issue**: [#52](https://github.com/guilherme-andrade/polyglot-ai/issues/52)
+## Purpose
 
-## Overview
+The Progress tab SHALL visualise the user's learning journey: XP growth over time, streak status, vocabulary expansion, CEFR progress, and lesson completion stats. All data MUST come from the server; no metrics SHALL be computed client-side.
 
-A dashboard screen (Progress tab) that visualizes the user's learning journey:
-XP growth, streaks, vocabulary expansion, CEFR progress, and lesson completion
-stats.
+## Requirements
 
-## Sections
+### Requirement: XP chart MUST show weekly and monthly views
 
-### XP over time
-- Line or bar chart: weekly and monthly views
-- Toggle between "Week" and "Month"
-- X-axis: days/weeks, Y-axis: cumulative XP
+An XP chart SHALL display cumulative XP over time. The user SHALL toggle between "Week" and "Month" views. X-axis SHALL show days (week view) or weeks (month view). Y-axis SHALL show cumulative XP.
 
-### Streak
-- Current streak (flame + number)
-- Best streak ever
-- "Next milestone: 30 days (12 to go)"
+#### Scenario: Toggle switches between week and month views
+- GIVEN the dashboard is showing the weekly XP chart
+- WHEN the user taps "Month"
+- THEN the chart SHALL switch to monthly view
+- AND the X-axis SHALL show weeks instead of days
 
-### Vocabulary
-- Total words learned
-- Words learned this week
-- Mini word cloud or list of recent words
+### Requirement: Streak section MUST show current and best streaks
 
-### CEFR progress
-- Current CEFR level estimate (A1–C2)
-- Progress bar to next level (e.g. "A2 — 60% to B1")
-- Sub-scores: vocabulary, grammar, reading
+The dashboard SHALL display current streak (flame + count), best streak ever, and the next milestone with progress ("Next milestone: 30 days — 12 to go").
 
-### Lessons
-- Lessons completed this week / this month
-- Average score
-- Total time spent learning
+#### Scenario: Streak milestone shows countdown
+- GIVEN the user has an 18-day streak
+- WHEN the dashboard renders
+- THEN it SHALL show "Next milestone: 30 days — 12 to go"
 
-## Data sources
+### Requirement: Vocabulary section MUST show total and weekly count
 
-| Metric | Source context | Query |
-|--------|---------------|-------|
-| XP history | gamification | `GET /api/gamification/xp-history?period=week\|month` |
-| Streak | gamification | `GET /api/gamification/player-profile` |
-| Vocabulary count | curriculum | `GET /api/curriculum/vocabulary-stats` |
-| CEFR level | curriculum | `GET /api/curriculum/skill-profile` |
-| Lesson stats | lesson | `GET /api/lessons/stats` |
+The dashboard SHALL display total words learned and words learned this week. A mini word cloud or recent words list MAY be included.
 
-## UI
+#### Scenario: Vocabulary count updates after lesson
+- GIVEN the user learned 8 new words in today's lesson
+- WHEN the dashboard refreshes
+- THEN "Total words learned" SHALL increase by 8
+- AND "Words this week" SHALL increase by 8
 
-- Scrollable dashboard with sections
-- Pull-to-refresh
-- Accessible from Progress tab (2nd tab in bottom nav)
+### Requirement: CEFR section MUST show current level and progress to next
 
-## Acceptance criteria
+The dashboard SHALL display the current CEFR level estimate (A1–C2) with a progress bar to the next level (e.g. "A2 — 60% to B1"). Sub-scores for vocabulary, grammar, and reading SHALL be displayed.
 
-- [ ] XP chart: weekly and monthly views
-- [ ] Streak: current streak, best streak, next milestone
-- [ ] Vocabulary: total words, words this week
-- [ ] CEFR: current level, progress to next level, sub-scores
-- [ ] Lessons: completed count, average score, total time
-- [ ] All data fetched from server, not computed client-side
-- [ ] Pull-to-refresh
+#### Scenario: Progress bar fills toward next level
+- GIVEN the user is at A2 with 60% proficiency toward B1
+- WHEN the dashboard renders
+- THEN the progress bar SHALL be filled to 60%
 
-## Out of scope
+### Requirement: Lesson stats MUST show completed count, average score, and total time
 
-- Sharing progress to social media
-- Detailed per-skill breakdowns (listening, speaking)
-- Comparison to "other learners like you"
-- Export progress report
+The dashboard SHALL display: lessons completed this week and this month, average score across all lessons, and total time spent learning.
+
+#### Scenario: Lesson stats reflect weekly activity
+- GIVEN the user completed 4 lessons this week with scores 7, 8, 9, and 10
+- WHEN the dashboard renders
+- THEN "Lessons this week" SHALL show 4
+- AND "Average score" SHALL show 8.5/10

@@ -1,44 +1,58 @@
-# Spec: Lefthook Pre-Commit Hooks
+# Lefthook Pre-Commit Hooks
 
-**Status**: draft
-**Bounded contexts**: devops
-**Issue**: [#27](https://github.com/guilherme-andrade/polyglot-ai/issues/27)
+## Purpose
 
-## Overview
+Pre-commit hooks via Lefthook SHALL run formatting, linting, and ArchUnit checks locally before every commit. This MUST catch issues before they reach CI, saving approximately 5 minutes per failed CI run. Hooks SHALL run in parallel where possible and complete in under 30 seconds.
 
-Pre-commit hooks via Lefthook that run locally before every commit to catch
-formatting, linting, and DDD boundary violations before they hit CI.
+## Requirements
 
-## Hooks
+### Requirement: Java files MUST be checked by Spotless and Checkstyle
 
-| Hook | Scope | Command |
-|------|-------|---------|
-| Spotless format | `server/**/*.java` | `cd server && ./gradlew spotlessApply` |
-| Checkstyle | `server/**/*.java` | `cd server && ./gradlew checkstyleMain checkstyleTest` |
-| ArchUnit | `server/**/*.java` | `cd server && ./gradlew test --tests '*ArchUnit*'` |
-| Prettier format | `app/**/*.{ts,tsx}` | `cd app && pnpm format` |
-| ESLint | `app/**/*.{ts,tsx}` | `cd app && pnpm lint` |
+When a commit includes changes to `server/**/*.java`, Lefthook SHALL run `./gradlew spotlessApply` for formatting and `./gradlew checkstyleMain checkstyleTest` for linting. These two hooks MAY run in parallel.
 
-## Configuration
+#### Scenario: Unformatted Java file is blocked
+- GIVEN a Java file has formatting violations
+- WHEN `git commit` is run
+- THEN Spotless SHALL fail
+- AND the commit SHALL be blocked
+- AND the output SHALL show which files need formatting
 
-`.lefthook.yml` at repo root. Install with `lefthook install`.
+### Requirement: ArchUnit boundary tests MUST run on server changes
 
-Key config rules:
-- `parallel: true` for independent hooks (format + lint run concurrently)
-- `fail_text: "Pre-commit checks failed. Run 'lefthook run pre-commit' to see details."`
-- Staged files only where Gradle/ESLint support it; fall back to all files
-- Skip with `LEFTHOOK=0 git commit ...` in emergencies (documented, not promoted)
+When a commit includes changes to `server/**/*.java`, Lefthook SHALL run ArchUnit tests. If a DDD boundary violation is detected, the commit SHALL be blocked.
 
-## Acceptance criteria
+#### Scenario: Cross-context import is caught at commit time
+- GIVEN a change imports from another bounded context's domain package
+- WHEN `git commit` is run
+- THEN the ArchUnit hook SHALL fail
+- AND the output SHALL name the violating import
 
-- [ ] `.lefthook.yml` committed at repo root
-- [ ] `lefthook install` registers git hooks
-- [ ] `git commit` triggers format + lint + ArchUnit on changed files
-- [ ] Failed hooks block the commit with clear output
-- [ ] `lefthook run pre-commit` runs all hooks manually
-- [ ] Hooks complete in under 30 seconds (incremental where possible)
+### Requirement: TypeScript files MUST be checked by Prettier and ESLint
 
-## Out of scope
+When a commit includes changes to `app/**/*.{ts,tsx}`, Lefthook SHALL run `pnpm format` and `pnpm lint`. These two hooks MAY run in parallel.
 
-- Commit message linting (conventional commits — add if team agrees)
-- Secret scanning (pre-commit hook for .env files — add if needed)
+#### Scenario: Linting error blocks commit
+- GIVEN a TSX file has an unused variable (ESLint error)
+- WHEN `git commit` is run
+- THEN the ESLint hook SHALL fail
+- AND the commit SHALL be blocked
+
+### Requirement: Spec files MUST be linted for OpenSpec format
+
+When a commit includes changes to `docs/specs/*.md`, Lefthook SHALL run `node scripts/lint-specs.js` to validate OpenSpec format. When changes include `docs/architecture/adr/*.md`, Lefthook SHALL run `node scripts/lint-specs.js --adr` to validate ADR format. Errors SHALL block the commit.
+
+#### Scenario: Spec with missing Purpose section is blocked
+- GIVEN a spec file has no `## Purpose` section
+- WHEN `git commit` is run
+- THEN the lint-specs hook SHALL fail with an error message
+- AND the commit SHALL be blocked
+
+### Requirement: Hooks MUST be installable and skippable
+
+`lefthook install` SHALL register git hooks. Setting `LEFTHOOK=0` SHALL skip all hooks for emergency commits. This escape hatch SHALL be documented in the Lefthook config, not promoted.
+
+#### Scenario: Emergency commit bypasses hooks
+- GIVEN hooks are installed
+- WHEN `LEFTHOOK=0 git commit` is run
+- THEN no hooks SHALL execute
+- AND the commit SHALL proceed regardless of formatting state

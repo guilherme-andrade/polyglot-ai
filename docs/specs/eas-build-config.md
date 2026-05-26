@@ -1,70 +1,47 @@
-# Spec: EAS Build Configuration
+# EAS Build Configuration
 
-**Status**: draft
-**Bounded contexts**: devops
-**Issue**: [#31](https://github.com/guilherme-andrade/polyglot-ai/issues/31)
-**Depends on**: `app-scaffold.md`, `deploy-staging.md`, `deploy-prod.md`
+## Purpose
 
-## Overview
+Configure Expo Application Services (EAS) for building and distributing the mobile app. Two build profiles MUST be defined: preview (internal distribution pointing to staging) and production (store submission pointing to production). Environment variables SHALL differ per profile.
 
-Configure Expo Application Services (EAS) for building and distributing the
-mobile app. Two profiles: preview (internal distribution) and production
-(app store submission).
+## Requirements
 
-## Profiles
+### Requirement: Preview profile MUST build for internal distribution
 
-### Preview
-- Purpose: internal testing via TestFlight / Google Play Internal Testing
-- Build type: `.app` (iOS) / `.apk` (Android)
-- API target: staging
-- Provisioning: iOS ad-hoc provisioning profile
-- Channel: `preview`
+The preview build profile SHALL produce `.app` (iOS) and `.apk` (Android) artifacts for internal testing via TestFlight and Google Play Internal Testing. It SHALL point to the staging API. It SHALL use the `preview` channel.
 
-### Production
-- Purpose: App Store + Google Play submission
-- Build type: store-ready
-- API target: production
-- Provisioning: iOS App Store provisioning profile
-- Channel: `production`
+#### Scenario: Preview build installs on test device
+- GIVEN the preview profile is configured
+- WHEN `eas build --profile preview` completes
+- THEN a TestFlight-invited device SHALL be able to install the build
+- AND the app SHALL connect to the staging API
 
-## `eas.json`
+### Requirement: Production profile MUST build for store submission
 
-```json
-{
-  "cli": { "version": ">= 5.0.0" },
-  "build": {
-    "preview": {
-      "distribution": "internal",
-      "channel": "preview",
-      "env": { "API_URL": "$STAGING_API_URL", "GRAPHQL_URL": "$STAGING_GRAPHQL_URL" }
-    },
-    "production": {
-      "distribution": "store",
-      "channel": "production",
-      "env": { "API_URL": "$PROD_API_URL", "GRAPHQL_URL": "$PROD_GRAPHQL_URL" }
-    }
-  },
-  "submit": {
-    "production": {}
-  }
-}
-```
+The production build profile SHALL produce store-ready artifacts for App Store and Google Play submission. It SHALL point to the production API. It SHALL use the `production` channel.
 
-## Environment variable management
+#### Scenario: Production build is store-submittable
+- GIVEN the production profile is configured
+- WHEN `eas build --profile production` completes
+- THEN the artifact SHALL pass App Store validation (if iOS)
+- AND the artifact SHALL pass Google Play pre-launch checks (if Android)
 
-- API URLs per profile set in `eas.json` or EAS Secrets
-- `EXPO_TOKEN` stored in GitHub Secrets for CI-triggered builds
-- `.env.example` documents all required vars
+### Requirement: Environment variables MUST differ per profile
 
-## Acceptance criteria
+`API_URL` and `GRAPHQL_URL` SHALL be set per profile: preview profiles SHALL use staging URLs, production profiles SHALL use production URLs. These values SHALL come from EAS Secrets or `eas.json` env blocks.
 
-- [ ] `eas.json` committed with `preview` and `production` build profiles
-- [ ] `eas build --profile preview` produces installable artifact
-- [ ] `eas build --profile production` produces store-submittable artifact
-- [ ] Environment variables resolved correctly per profile
-- [ ] Android keystore managed via EAS (not committed)
+#### Scenario: Preview build targets staging API
+- GIVEN a preview build is installed
+- WHEN the app makes a GraphQL request
+- THEN it SHALL call the staging GraphQL endpoint
+- AND it SHALL NOT call the production endpoint
 
-## Out of scope
+### Requirement: Android keystore MUST be managed via EAS
 
-- `eas submit` configuration (needs store connect setup first — separate spec: `app-store-setup.md`)
-- OTA update configuration (`eas update` — covered in `deploy-staging.md`)
+Android signing keys SHALL be managed through EAS. The keystore SHALL NOT be committed to the repository. EAS SHALL handle signing automatically.
+
+#### Scenario: Android build is signed automatically
+- GIVEN the EAS project is configured with Android credentials
+- WHEN `eas build --profile production` is run for Android
+- THEN the resulting APK/AAB SHALL be signed
+- AND the keystore SHALL NOT exist in the repository

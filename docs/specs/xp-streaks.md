@@ -1,88 +1,61 @@
-# Spec: XP & Daily Streaks
+# XP & Daily Streaks
 
-**Status**: draft
-**Bounded contexts**: gamification
-**Issues**: [#50](https://github.com/guilherme-andrade/polyglot-ai/issues/50), [#51](https://github.com/guilherme-andrade/polyglot-ai/issues/51)
+## Purpose
 
-## Overview
+Core gamification loop: users earn XP for completing lessons and maintain a daily streak by learning every day. These are the primary motivation mechanics in v1. XP MUST be calculated from exercise count, accuracy, and CEFR level. Streaks SHALL reset on missed days.
 
-Core gamification loop: earn XP for completing lessons, maintain a daily streak.
-These are the primary motivation mechanics in v1.
+## Requirements
 
-## XP system (#50)
+### Requirement: XP MUST be awarded on lesson completion
 
-### Earning rules
-| Factor | Value |
-|--------|-------|
-| Per exercise completed | 5 XP |
-| Accuracy bonus (100%) | 2x base XP |
-| Accuracy bonus (≥80%) | 1.5x base XP |
-| CEFR multiplier (A1) | 1x |
-| CEFR multiplier (A2) | 1.2x |
-| CEFR multiplier (B1) | 1.5x |
-| CEFR multiplier (B2) | 2x |
-| CEFR multiplier (C1–C2) | 2.5x |
-| Lesson completion bonus | +10 XP |
+When a lesson is completed, the gamification context SHALL calculate XP as: `(exercisesCompleted × 5 × accuracyMultiplier × cefrMultiplier) + completionBonus`. Accuracy multiplier: 2x for 100%, 1.5x for ≥80%, 1x otherwise. CEFR multiplier: 1x for A1, 1.2x for A2, 1.5x for B1, 2x for B2, 2.5x for C1–C2. Completion bonus: 10 XP.
 
-Formula: `XP = (exercises × 5 × accuracyMultiplier × cefrMultiplier) + completionBonus`
+#### Scenario: Perfect score at B1 level
+- GIVEN a lesson with 10 exercises, 100% accuracy, B1 level
+- WHEN the lesson is completed
+- THEN XP SHALL be: (10 × 5 × 2.0 × 1.5) + 10 = 160 XP
 
-### Display
-- XPCounter component: pill showing current total XP
-- "+N XP" popup animation on earn
-- Particle burst / confetti on level-up
-- XP total visible in Profile tab and on lesson completion screen
+### Requirement: XP SHALL be persisted and displayed
 
-## Daily streak (#51)
+XP SHALL be persisted to the PlayerProfile aggregate. The XPCounter component SHALL display the current total as a pill. On earn, a "+N XP" popup SHALL animate. On level-up, a particle burst or confetti animation SHALL play.
 
-### Rules
-- Streak increments when user completes at least 1 lesson in a calendar day
-- Streak resets to 0 if a day is missed
-- Streak freeze: user can miss 1 day per week without resetting (deferred to post-v1)
-- Milestone celebrations: 7 days, 30 days, 100 days, 365 days
+#### Scenario: XP counter animates on earn
+- GIVEN the user has 500 XP
+- WHEN a lesson awards 45 XP
+- THEN the counter SHALL animate from 500 to 545
+- AND a "+45 XP" popup SHALL appear briefly
 
-### Display
-- StreakCounter component: flame icon + count
-- Animated increment on lesson completion (flame grows)
-- Displayed prominently on Learn tab
-- Milestone: confetti + "7 day streak!" badge
+### Requirement: Streak MUST increment on first lesson each day
 
-## Data model
+The streak SHALL increment when the user completes at least one lesson in a calendar day. If a day is missed, the streak SHALL reset to 0. Best streak SHALL be tracked separately. Streak milestones (7, 30, 100 days) SHALL trigger a celebration animation.
 
-```java
-// Gamification context
-@Entity
-public class PlayerProfile {
-    UUID userId;
-    int totalXp;
-    int currentStreak;
-    int bestStreak;
-    LocalDate lastLessonDate;
-    List<XpTransaction> transactions;
-}
-```
+#### Scenario: Missed day resets streak
+- GIVEN the user has a 12-day streak and last played 2 days ago
+- WHEN the user completes a lesson today
+- THEN the streak SHALL reset to 1
+- AND the best streak SHALL remain 12
 
-## Contracts
+#### Scenario: 7-day streak triggers celebration
+- GIVEN the user has a 6-day streak
+- WHEN they complete a lesson on day 7
+- THEN the streak SHALL increment to 7
+- AND a confetti celebration SHALL play
 
-| From | To | Contract |
-|------|----|----------|
-| lesson | gamification | `LessonCompleted` event → award XP, update streak |
-| gamification | user | `AchievementUnlocked` event → notify profile (for badges) |
+### Requirement: Streak SHALL be displayed prominently
 
-## Acceptance criteria
+The StreakCounter component SHALL show a flame icon with the current streak count. It SHALL animate on increment (flame grows). It SHALL be displayed on the Learn tab. Best streak SHALL be visible on the Progress dashboard.
 
-- [ ] XP awarded on lesson completion with formula (#50)
-- [ ] XP persisted to PlayerProfile
-- [ ] XP total visible on Profile tab and lesson completion screen
-- [ ] Animated XP increment on earn
-- [ ] Streak increments on first lesson of the day (#51)
-- [ ] Streak resets on missed day
-- [ ] Streak count displayed on Learn tab (flame + number)
-- [ ] Milestone celebrations at 7, 30, 100 days
-- [ ] Best streak tracked separately from current streak
+#### Scenario: Flame icon grows on streak increment
+- GIVEN the streak increments from 6 to 7
+- WHEN the StreakCounter updates
+- THEN the flame icon SHALL animate (scale up briefly)
 
-## Out of scope
+### Requirement: LessonCompleted event MUST trigger gamification updates
 
-- Streak freeze (post-v1)
-- Leaderboards (future)
-- Achievements/badges (future, beyond streak milestones)
-- XP decay (we don't penalize inactivity beyond streak loss)
+The gamification context SHALL subscribe to `LessonCompleted` events from the lesson context. On receipt, it SHALL award XP, update the streak, and check for milestone achievements.
+
+#### Scenario: Gamification updates on LessonCompleted event
+- GIVEN a `LessonCompleted` event is published
+- WHEN the gamification context receives it
+- THEN XP SHALL be calculated and added
+- AND the streak SHALL be updated if this is the first lesson today

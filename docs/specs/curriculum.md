@@ -1,93 +1,48 @@
-# Spec: Curriculum (Placement Test + Generation)
+# Curriculum
 
-**Status**: draft
-**Bounded contexts**: curriculum
-**Issues**: [#43](https://github.com/guilherme-andrade/polyglot-ai/issues/43), [#44](https://github.com/guilherme-andrade/polyglot-ai/issues/44)
+## Purpose
 
-## Overview
+The curriculum context SHALL own skill assessment and personalised learning path generation. It MUST take a user's self-assessed level from onboarding, optionally refine it with an adaptive placement test, and generate a curriculum of ordered skill units that the lesson engine draws from. The curriculum SHALL adapt as the user progresses.
 
-The curriculum context owns skill assessment and personalized learning path
-generation. It takes a user's self-assessed level (from onboarding), optionally
-refines it with a placement test, and generates an adaptive curriculum that the
-lesson engine draws from.
+## Requirements
 
-## Placement test (#43)
+### Requirement: Placement test MUST be adaptive and skippable
 
-### Design
-- Adaptive test: 10–20 questions, difficulty adjusts based on running score
-- Covers: vocabulary recognition (multiple choice), grammar comprehension (fill-in-gap), reading (short passage + questions)
-- Produces calibrated CEFR estimate (A1–C2) with sub-scores: vocabulary, grammar, reading
-- Test can be skipped (falls back to self-assessed level from onboarding)
-- Results stored as user's baseline `SkillProfile` in the curriculum context
+An adaptive placement test SHALL present 10–20 questions that adjust difficulty based on running score. It MUST cover vocabulary recognition, grammar comprehension, and reading. The test SHALL produce a calibrated CEFR estimate (A1–C2) with sub-scores. The user MAY skip the test and fall back to their self-assessed level.
 
-### Flow
-1. Start at self-assessed level
-2. Each correct answer → next question slightly harder
-3. Each incorrect answer → next question slightly easier
-4. Converge after 10–20 questions
-5. Display result: "You're at A2 level! Here's your starting curriculum."
+#### Scenario: Correct answers increase question difficulty
+- GIVEN the user answers a B1-level question correctly
+- WHEN the next question is requested
+- THEN the next question SHALL be at B2 level
 
-### Server
-- `POST /api/curriculum/placement-test/start` → returns first question
-- `POST /api/curriculum/placement-test/answer` → returns next question or result
-- Question bank: generated/curated set of questions per level per language
+#### Scenario: Test skipped falls back to self-assessment
+- GIVEN the user self-assessed as Beginner
+- WHEN the placement test is skipped
+- THEN the SkillProfile SHALL use the Beginner CEFR estimate
 
-## Curriculum generation (#44)
+### Requirement: Curriculum MUST be an ordered sequence of skill units
 
-### Model
-A curriculum is an ordered sequence of skill units, each targeting specific
-vocabulary groups and grammar points, with prerequisites between units.
+A curriculum SHALL be a sequence of skill units ordered by prerequisites. Each unit SHALL target specific vocabulary groups and grammar points. Units SHALL include: title, description, vocabulary count, grammar points, CEFR level, and status (locked/unlocked/completed).
 
-```
-Curriculum
-├── Unit: Greetings & Introductions (A1)
-│   ├── Vocabulary: hello, goodbye, my name is, please, thank you
-│   └── Grammar: subject pronouns, verb "to be" present tense
-├── Unit: Family & Friends (A1)
-│   ├── Vocabulary: mother, father, friend, brother, sister
-│   └── Grammar: possessive adjectives, present simple
-├── ...
-└── Unit: Abstract Discussion (B2)
-    ├── Vocabulary: hypothesis, implication, conversely, nevertheless
-    └── Grammar: subjunctive mood, passive constructions
-```
+#### Scenario: Next unit unlocks when previous unit completes
+- GIVEN the user completes unit "Greetings & Introductions"
+- WHEN the curriculum is queried
+- THEN unit "Family & Friends" SHALL transition from locked to unlocked
 
-### Generation algorithm
-1. Start from user's CEFR baseline
-2. Select units that:
-   - Match the user's known vs. unknown vocabulary (spaced repetition)
-   - Target grammar gaps identified in placement test or ongoing performance
-   - Use content matching the user's interests (from onboarding)
-3. Order by prerequisite chain
-4. Recalibrate as user progresses (not static)
+### Requirement: Curriculum generation MUST use skill gaps and user interests
 
-### Server
-- `GET /api/curriculum` → returns current curriculum with unit list and progress
-- Each unit has: id, title, description, vocabulary count, grammar points, CEFR level, status (locked/unlocked/completed)
-- Curriculum generated on first access after onboarding; regenerated when skill profile changes significantly
+Units SHALL be selected based on: known vs. unknown vocabulary (spaced repetition), grammar gaps identified in placement test or ongoing performance, and content matching user interests from onboarding. The curriculum SHALL recalibrate as the user progresses.
 
-### Contracts
+#### Scenario: User interests influence unit content selection
+- GIVEN a user interested in "Music" and "Technology"
+- WHEN curriculum units are generated
+- THEN content for exercises SHALL prioritise music and technology topics
 
-| From | To | Contract |
-|------|----|----------|
-| curriculum | content | Requests content matching unit's vocabulary + user interests |
-| curriculum | lesson | `CurriculumService.getNextUnit(userId)` → UnitDTO (called by lesson generator) |
-| lesson | curriculum | `LessonCompleted` event → update unit progress, recalculate SkillProfile |
+### Requirement: Curriculum context MUST respond to LessonCompleted events
 
-## Acceptance criteria
+When the lesson context publishes a `LessonCompleted` event, the curriculum context SHALL update unit progress and recalculate the user's SkillProfile. If proficiency in a unit's vocabulary exceeds the mastery threshold, the unit SHALL be marked complete.
 
-- [ ] Placement test: adaptive 10–20 questions (#43)
-- [ ] Placement test: produces CEFR estimate with sub-scores
-- [ ] Placement test: can be skipped (falls back to self-assessment)
-- [ ] Placement test: results stored as SkillProfile baseline
-- [ ] Curriculum: ordered sequence of skill units with prerequisites (#44)
-- [ ] Curriculum: units selected based on skill gaps + user interests
-- [ ] Curriculum: adapts as user progresses (units unlock, difficulty adjusts)
-- [ ] Unit content: vocabulary list + grammar points per unit
-- [ ] GraphQL API: query curriculum with unit progress
-
-## Out of scope
-
-- Multi-language curriculum (user learns one language at a time in v1)
-- User-created custom units
-- Offline curriculum access (requires server for generation)
+#### Scenario: Lesson completion updates curriculum progress
+- GIVEN a lesson covering "Greetings & Introductions" vocabulary is completed
+- WHEN the `LessonCompleted` event is received
+- THEN the curriculum SHALL update unit progress for that unit

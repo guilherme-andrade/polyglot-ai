@@ -1,62 +1,56 @@
-# Spec: Lesson Completion Screen
+# Lesson Completion
 
-**Status**: draft
-**Bounded contexts**: lesson, gamification
-**Issue**: [#48](https://github.com/guilherme-andrade/polyglot-ai/issues/48)
+## Purpose
 
-## Overview
+After finishing all exercises in a lesson, the user SHALL see a results summary with score, XP earned, new words learned, and per-exercise breakdown. The completion event MUST trigger XP award in the gamification context and curriculum progress update via domain events.
 
-After finishing all exercises in a lesson, show a results summary with score,
-XP earned, new words learned, and per-exercise breakdown. The completion event
-triggers XP award and curriculum progress update.
+## Requirements
 
-## UI
+### Requirement: Completion screen MUST show score, XP, and time
 
-### Score section
-- X/Y correct (e.g. "7/10")
-- Percentage
-- XP earned ("+45 XP" with animated increment)
-- Time taken to complete
+The completion screen SHALL display: X/Y correct, percentage, XP earned with animated increment, and time taken to complete. The XP counter SHALL animate from 0 to the earned value.
 
-### Word summary
-- New words learned in this lesson (list with target + native)
-- Words to review (ones the user got wrong)
+#### Scenario: XP counter animates on screen
+- GIVEN the user earned 45 XP
+- WHEN the completion screen renders
+- THEN the XP counter SHALL animate from 0 to 45
+- AND the animation SHALL complete within 2 seconds
 
-### Exercise breakdown
-- List of exercises: prompt shown, user's answer, correct/incorrect indicator
-- Tap to expand and see full correct answer
+### Requirement: New words learned MUST be listed with translations
 
-### CTA
-- "Continue" button → returns to Learn tab
-- "Review mistakes" button → shows only incorrect exercises with correct answers (deferred to v2)
+The completion screen SHALL list all new words introduced in this lesson, each with target language word and native language translation. Words the user got wrong SHALL appear in a separate "Words to review" section.
 
-## Server
+#### Scenario: Words to review are separated from new words
+- GIVEN the user got 3 words wrong during the lesson
+- WHEN the completion screen renders
+- THEN those 3 words SHALL appear under "Words to review"
+- AND correctly answered new words SHALL appear under "New words learned"
 
-- `POST /api/lessons/{id}/complete` — marks lesson complete, triggers:
-  - `LessonCompleted` event → gamification context (award XP)
-  - `LessonCompleted` event → curriculum context (update SkillProfile, unlock next unit)
-  - `LessonCompleted` event → analytics context (log completion)
+### Requirement: Per-exercise breakdown MUST show correct/incorrect
 
-## XP calculation
+The completion screen SHALL list every exercise with: prompt, user's answer, and correct/incorrect indicator. The user MAY tap an exercise to expand and see the full correct answer.
 
-See `xp-streaks.md` (M3) for full formula. Summary:
-- Base XP per exercise
-- Accuracy bonus (100% = 2x XP)
-- CEFR multiplier (higher level = more XP)
+#### Scenario: Tapping an incorrect exercise shows the correct answer
+- GIVEN an exercise was answered incorrectly
+- WHEN the user taps it in the breakdown
+- THEN the full correct answer SHALL be revealed
 
-## Acceptance criteria
+### Requirement: Lesson completion MUST publish a domain event
 
-- [ ] Score display: X/Y correct, percentage, XP earned, time taken
-- [ ] New words learned section with target + native pairs
-- [ ] Words to review section (incorrect answers)
-- [ ] Per-exercise breakdown with correct/incorrect indicators
-- [ ] "Continue" button returns to Learn tab
-- [ ] Server: lesson completion triggers XP award (gamification context)
-- [ ] Server: lesson completion triggers curriculum update
-- [ ] XP animated counter on the completion screen
+When the lesson is marked complete via `POST /api/lessons/{id}/complete`, the server SHALL publish a `LessonCompleted` domain event consumed by: gamification context (award XP, update streak), curriculum context (update SkillProfile, unlock next unit), and analytics context (log completion).
 
-## Out of scope
+#### Scenario: Completing a lesson awards XP
+- GIVEN a lesson with 8/10 correct at B1 level
+- WHEN the lesson is completed
+- THEN the gamification context SHALL receive `LessonCompleted`
+- AND XP SHALL be calculated as: (exercises × 5 × accuracyMultiplier × cefrMultiplier) + completionBonus
 
-- "Review mistakes" interactive mode (post-v1)
-- Share results (social)
-- Lesson rating / feedback from user
+### Requirement: Continue button MUST return to Learn tab
+
+A "Continue" button SHALL be the primary CTA on the completion screen. Tapping it SHALL return the user to the Learn tab, where the daily goal progress ring reflects the completed lesson.
+
+#### Scenario: Continue returns to Learn tab
+- GIVEN the user views the completion screen
+- WHEN "Continue" is tapped
+- THEN the app SHALL navigate to the Learn tab
+- AND the daily goal ring SHALL show updated progress

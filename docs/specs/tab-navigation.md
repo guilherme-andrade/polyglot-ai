@@ -1,59 +1,50 @@
-# Spec: Tab Navigation Shell
+# Tab Navigation Shell
 
-**Status**: draft
-**Bounded contexts**: app (cross-cutting)
-**Issue**: [#37](https://github.com/guilherme-andrade/polyglot-ai/issues/37)
-**Depends on**: `auth.md`, `app-scaffold.md`
+## Purpose
 
-## Overview
+The bottom tab bar MUST form the main navigation skeleton of the app, visible on all primary screens after authentication. Tabs SHALL preserve their state when switching so the user's scroll position and data are not lost. The tab bar SHALL hide during immersive experiences (lesson taking) and auth/onboarding flows.
 
-Bottom tab bar with 3 tabs that forms the main navigation skeleton of the app.
-Present after authentication, visible on all main screens.
+## Requirements
 
-## Tabs
+### Requirement: Three tabs MUST provide primary navigation
 
-| Tab | Icon | Label | Screen |
-|-----|------|-------|--------|
-| Learn | Book | "Learn" | Today's lesson / lesson history |
-| Progress | Chart | "Progress" | Curriculum view / stats dashboard |
-| Profile | Person | "Profile" | Settings, account, preferences |
+The tab bar SHALL include three tabs: Learn (Book icon), Progress (Chart icon), and Profile (Person icon). Each tab SHALL have an icon and label. Active tabs SHALL use filled icons with brand color; inactive tabs SHALL use outline icons with neutral gray.
 
-## Behavior
+#### Scenario: Tab bar renders after login
+- GIVEN the user has authenticated
+- WHEN the main screen renders
+- THEN the bottom tab bar SHALL be visible with 3 tabs
+- AND the Learn tab SHALL be active by default
 
-- Tab bar always visible on main screens (hidden during onboarding, auth, lesson taking)
-- Tab state preserved when switching (don't remount screens unless necessary)
-- Smooth fade/slide transitions between tabs (default Expo Router animation)
-- Active tab has filled icon + brand color; inactive tabs use outline icon + neutral gray
-- Each tab preserves its scroll position when switching away and back
+#### Scenario: Tapping a tab switches screens
+- GIVEN the user is on the Learn tab
+- WHEN the Progress tab is tapped
+- THEN the screen SHALL switch to the Progress view
+- AND the Progress icon SHALL become filled with brand color
 
-## Layout
+### Requirement: Tab state MUST be preserved on switch
 
-```
-(tabs)/
-├── _layout.tsx    # Tab bar config (icons, labels, auth gate)
-├── learn/
-│   ├── _layout.tsx
-│   └── index.tsx  # Today's lesson
-├── progress/
-│   ├── _layout.tsx
-│   └── index.tsx  # Progress dashboard
-└── profile/
-    ├── _layout.tsx
-    └── index.tsx  # Profile/settings
-```
+When switching between tabs, the inactive tab's scroll position and rendered content SHALL be preserved. Switching back SHALL NOT cause a remount.
 
-## Acceptance criteria
+#### Scenario: Scroll position preserved
+- GIVEN the user scrolls down on the Progress tab
+- WHEN they switch to Learn and then back to Progress
+- THEN the scroll position SHALL be where they left it
 
-- [ ] 3-tab bottom navigation with Learn, Progress, Profile
-- [ ] Each tab has icon + label
-- [ ] Tab state preserved on switch (no remount)
-- [ ] Smooth transitions between tabs
-- [ ] Active/inactive icon styling (filled vs outline)
-- [ ] Tab bar hidden during onboarding and auth flows
-- [ ] Tab bar hidden during lesson taking (immersive mode)
+### Requirement: Tab bar MUST hide during auth, onboarding, and lesson taking
 
-## Out of scope
+The tab bar SHALL NOT be visible on auth screens (login, register), onboarding screens, or during active lesson taking (immersive mode).
 
-- Badge counts on tab icons (notification count, streak indicator — add in M3)
-- Additional tabs (future: Leaderboard, Content)
-- Tab bar customization by user
+#### Scenario: Tab bar hidden during lesson
+- GIVEN the user starts a lesson from the Learn tab
+- WHEN the lesson screen renders
+- THEN the bottom tab bar SHALL be hidden
+
+### Requirement: File-based routing MUST use Expo Router route groups
+
+The tab layout SHALL be defined in `(tabs)/_layout.tsx`. Auth screens SHALL be in `(auth)/`. The root layout SHALL handle routing between auth and tabs based on authentication state.
+
+#### Scenario: File structure matches route groups
+- GIVEN the app scaffold is complete
+- WHEN `ls app/src/app/` is run
+- THEN `(auth)/` and `(tabs)/` route groups SHALL exist
