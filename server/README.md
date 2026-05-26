@@ -2,6 +2,10 @@
 
 Java 21 + Spring Boot 3.5 backend, organised with Domain-Driven Design.
 
+> **What's in the scaffold and what's deferred** — see
+> [`docs/specs/server-scaffold.md`](../docs/specs/server-scaffold.md). Read it before
+> adding dependencies, new contexts, or touching the security / GraphQL placeholders.
+
 ## Stack
 
 - **Language**: Java 21 LTS (virtual threads enabled)
