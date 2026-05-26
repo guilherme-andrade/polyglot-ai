@@ -12,7 +12,7 @@ set -eu
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 BLUE='\033[0;34m'; CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
 
-TOTAL_STEPS=12
+TOTAL_STEPS=13
 CURRENT_STEP=0
 
 step() {
@@ -266,6 +266,27 @@ info "MCPs configured:"
 info "  playwright  → @playwright/mcp (browser testing)"
 info "  openspec    → @anthropic-ai/openspec (spec management)"
 
+# ── Step 13: Ops environment file ─────────────────────────────────────────────
+
+step "Setting up ops environment"
+
+ENV_FILE="$(git rev-parse --show-toplevel)/.env.ops"
+ENV_EXAMPLE="$(git rev-parse --show-toplevel)/.env.ops.example"
+
+if [[ -f "$ENV_FILE" ]]; then
+  ok ".env.ops already exists"
+else
+  if [[ -f "$ENV_EXAMPLE" ]]; then
+    cp "$ENV_EXAMPLE" "$ENV_FILE"
+    ok "Copied .env.ops.example → .env.ops"
+    warn ".env.ops has been created — edit it and set REVIEWER_GITHUB_TOKEN"
+    info "Generate a token at: https://github.com/settings/tokens (repo scope)"
+    info "Use the reviewer bot account (@not-a-camp-bot) to create it"
+  else
+    warn ".env.ops.example not found — skipping"
+  fi
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────────────
 
 echo
@@ -273,11 +294,12 @@ echo -e "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━�
 echo -e "${BOLD}${GREEN}  Setup complete!${NC}"
 echo
 echo -e "  ${BOLD}Next steps:${NC}"
-echo -e "  1. Authenticate:  ${CYAN}gh auth login${NC}  (if not already done)"
-echo -e "  2. Start Docker:   ${CYAN}open -a Docker${NC}   (if not running)"
-echo -e "  3. Install deps:   ${CYAN}cd app && pnpm install${NC}"
-echo -e "  4. Start server:   ${CYAN}cd server && docker compose up -d && ./gradlew bootRun${NC}"
-echo -e "  5. Start app:      ${CYAN}cd app && pnpm start${NC}"
+echo -e "  1. Edit ops env:    ${CYAN}vim .env.ops${NC}  — set REVIEWER_GITHUB_TOKEN"
+echo -e "  2. Authenticate:    ${CYAN}gh auth login${NC}  (if not already done)"
+echo -e "  3. Start Docker:    ${CYAN}open -a Docker${NC}   (if not running)"
+echo -e "  4. Install deps:    ${CYAN}cd app && pnpm install${NC}"
+echo -e "  5. Start server:    ${CYAN}cd server && docker compose up -d && ./gradlew bootRun${NC}"
+echo -e "  6. Start app:       ${CYAN}cd app && pnpm start${NC}"
 echo
 echo -e "  ${BOLD}Test everything:${NC}"
 echo -e "  ${CYAN}./scripts/verify.sh${NC}"
