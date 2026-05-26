@@ -1,0 +1,14 @@
+# Root GraphQL schema.
+#
+# Bounded contexts contribute their own `*.graphqls` files alongside this one
+# (Spring for GraphQL merges all schemas on the classpath). Until at least one
+# context defines a real `Query` field, this file declares a single `ping`
+# field — GraphQL requires `Query` to have at least one field, and Spring will
+# fail startup otherwise.
+#
+# Once any context defines real queries, the `ping` field and its resolver
+# (`PingGraphqlController`) can be removed in the same PR.
+
+type Query {
+  ping: String!
+}

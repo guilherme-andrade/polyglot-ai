@@ -14,19 +14,44 @@ Java 21 + Spring Boot 3.5 backend, organised with Domain-Driven Design.
 
 ## Getting Started
 
+Requires JDK 21 (Temurin or OpenJDK) on `JAVA_HOME` and Docker.
+
 ```bash
-# Start PostgreSQL + MongoDB (via Testcontainers or local)
+# Start PostgreSQL 17 + pgvector (host port 5433) and MongoDB 8 (host port 27017)
 docker compose up -d
 
-# Run the server
+# Run the server (http://localhost:8080)
 ./gradlew bootRun
 
-# Run tests
+# Run tests (smoke + ArchUnit boundary tests)
 ./gradlew test
 
-# Format code
+# Format code (Palantir Java format)
 ./gradlew spotlessApply
+
+# Full CI pipeline locally: format, lint, archunit, test
+./gradlew check
 ```
+
+Postgres is published on host port **5433** to avoid conflict with locally-installed
+Postgres on the default 5432. Override the JDBC URL via `POLYGLOT_DB_URL` if needed.
+
+### Local environment variables
+
+The server **fails closed by default** — without an OAuth2 issuer configured, every
+route except `/actuator/health` and `/actuator/info` returns 403. To use GraphiQL or
+hit `/graphql` directly from your machine without setting up an IdP, opt into insecure
+dev mode:
+
+```bash
+export POLYGLOT_SECURITY_INSECURE_DEV=true   # opens /graphql and /graphiql locally
+export LOGGING_LEVEL_COM_POLYGLOTAI=DEBUG    # optional: verbose app logs
+./gradlew bootRun
+```
+
+The app logs a `WARN` at startup whenever insecure-dev mode is on. **Never set this in
+a deployed environment.** A `server/.env.example` will land with [#58](https://github.com/guilherme-andrade/polyglot-ai/issues/58)
+templating every available variable.
 
 ## Package Structure (DDD)
 

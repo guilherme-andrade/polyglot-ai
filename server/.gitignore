@@ -1,0 +1,26 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.fleet/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+
+# Logs / runtime
+*.log
+hs_err_pid*.log
+
+# Local env
+.env
+.env.local
