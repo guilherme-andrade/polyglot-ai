@@ -13,8 +13,10 @@ Monorepo, 3-person team, heavy AI collaboration.
 - **ADR records**: [`docs/architecture/adr/`](docs/architecture/adr/)
 - **App conventions**: [`app/README.md`](app/README.md)
 - **Server conventions**: [`server/README.md`](server/README.md)
+- **Project tracker**: [GitHub Issues](https://github.com/guilherme-andrade/polyglot-ai/issues) — source of truth for roadmap, task status, and priorities
 - **Wiki**: [github.com/guilherme-andrade/polyglot-ai/wiki](https://github.com/guilherme-andrade/polyglot-ai/wiki)
 - **Testing guide**: [`docs/testing.md`](docs/testing.md)
+- **Review workflow**: `/review` skill (`.claude/skills/review/`) — PR reviews with manual testing
 
 ## Repository Map
 
@@ -26,7 +28,8 @@ polyglot-ai/
 ├── terraform/    Infra-as-code
 ├── ansible/      Server configuration
 ├── .github/      CI/CD workflows
-└── .claude/      Claude Code agent settings
+├── .claude/      Claude Code agent settings, skills, and MCP config
+│   ├── skills/   Custom slash commands (/review, etc.)
 ```
 
 ## Global Rules
@@ -47,6 +50,11 @@ These apply to **any** task in this repo, regardless of context:
    and automate tests. Include test evidence in your PR description — curl commands,
    CI results, screenshots, or Playwright traces. Every acceptance criteria in the
    spec must be verified.
+6. **Check GitHub Issues for project status.** When asked about the state of the
+   project, roadmap, priorities, or "what's next", consult
+   [GitHub Issues](https://github.com/guilherme-andrade/polyglot-ai/issues) first.
+   Issues are the canonical tracker — labels map to bounded contexts and layers.
+   Cross-reference with open branches for work-in-flight.
 
 ## Quick Start
 

@@ -27,6 +27,7 @@ Thumbs.db
 *.env
 
 # Secrets
+.env.ops
 *.pem
 *.p12
 *.keystore
