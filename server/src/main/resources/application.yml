@@ -23,14 +23,28 @@ spring:
   data:
     mongodb:
       uri: ${POLYGLOT_MONGO_URI:mongodb://localhost:27017/polyglot}
-  # JWT validation activates when issuer-uri is set; leave blank in dev to skip.
-  # The auth feature PR (see docs/specs/) will populate this and move SecurityConfig
-  # into the owning bounded context.
+  # JWT validation activates when issuer-uri is set. Leave blank in local dev (combined
+  # with polyglot.security.insecure-dev=true below) to skip auth entirely. The auth
+  # feature PR will populate this and move SecurityConfig into the owning context.
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${POLYGLOT_JWT_ISSUER_URI:}
+  graphql:
+    graphiql:
+      enabled: ${POLYGLOT_GRAPHIQL_ENABLED:true}
+
+# Project-scoped configuration.
+polyglot:
+  security:
+    # When true, /graphql and /graphiql are opened to unauthenticated requests so
+    # developers can iterate locally without configuring an IdP. The application logs
+    # a loud warning at startup so this can never be enabled silently.
+    #
+    # PRODUCTION DEPLOYMENTS MUST LEAVE THIS FALSE (the default). Set the env var
+    # POLYGLOT_SECURITY_INSECURE_DEV=true only in local-development shells.
+    insecure-dev: ${POLYGLOT_SECURITY_INSECURE_DEV:false}
 
 server:
   port: ${POLYGLOT_PORT:8080}
@@ -49,4 +63,7 @@ management:
 logging:
   level:
     root: INFO
-    com.polyglotai: DEBUG
+    # Override locally with LOGGING_LEVEL_COM_POLYGLOTAI=DEBUG when you need verbose
+    # application logs. Keeping the default at INFO avoids noisy / potentially-sensitive
+    # output in deployed environments.
+    com.polyglotai: ${LOGGING_LEVEL_COM_POLYGLOTAI:INFO}

@@ -6,7 +6,9 @@
  * relevant feature spec lands, the class either moves into the owning context's
  * {@code interfaces} or {@code infrastructure} layer, or is deleted outright.
  *
- * <p>See {@code docs/specs/server-scaffold.md} for the removal conditions per class.
+ * <p>The full removal conditions per class live in {@code docs/specs/server-scaffold.md}
+ * (introduced by PR #59 alongside this PR). Each class in this package also documents
+ * its own removal trigger in its Javadoc.
  *
  * <p>Code added here should:
  *
