@@ -1,0 +1,98 @@
+name: Server CI
+
+on:
+  pull_request:
+    paths: ['server/**', '.github/workflows/server-ci.yml']
+  push:
+    branches: [main]
+    paths: ['server/**', '.github/workflows/server-ci.yml']
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Spotless check
+        working-directory: server
+        run: ./gradlew spotlessCheck
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Checkstyle
+        working-directory: server
+        run: ./gradlew checkstyleMain checkstyleTest
+
+  archunit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: ArchUnit tests
+        working-directory: server
+        run: ./gradlew test --tests '*ArchUnitTest'
+
+  test:
+    needs: [format, lint, archunit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Run tests
+        working-directory: server
+        run: ./gradlew test
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: server/build/reports/tests/
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: server/build/test-results/
+
+  build:
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build boot JAR
+        working-directory: server
+        run: ./gradlew bootJar
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-jar
+          path: server/build/libs/*.jar
