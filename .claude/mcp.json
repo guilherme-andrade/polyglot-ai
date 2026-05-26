@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp", "--headless"],
+      "description": "Browser automation for testing the Expo web app"
+    },
+    "openspec": {
+      "command": "npx",
+      "args": ["-y", "@anthropic-ai/openspec"],
+      "description": "OpenSpec — write, validate, and manage feature specifications"
+    }
+  }
+}
