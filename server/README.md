@@ -42,6 +42,12 @@ Postgres on the default 5432. Override the JDBC URL via `POLYGLOT_DB_URL` if nee
 
 ### Local environment variables
 
+Every configurable env var has a default in
+[`src/main/resources/application.yml`](src/main/resources/application.yml). For a
+working local setup you don't need to set anything; for overrides, see the
+annotated template at [`server/.env.example`](.env.example) — copy it to `server/.env`
+(gitignored) and uncomment what you need.
+
 The server **fails closed by default** — without an OAuth2 issuer configured, every
 route except `/actuator/health` and `/actuator/info` returns 403. To use GraphiQL or
 hit `/graphql` directly from your machine without setting up an IdP, opt into insecure
@@ -54,8 +60,7 @@ export LOGGING_LEVEL_COM_POLYGLOTAI=DEBUG    # optional: verbose app logs
 ```
 
 The app logs a `WARN` at startup whenever insecure-dev mode is on. **Never set this in
-a deployed environment.** A `server/.env.example` will land with [#58](https://github.com/guilherme-andrade/polyglot-ai/issues/58)
-templating every available variable.
+a deployed environment.**
 
 ## Package Structure (DDD)
 
