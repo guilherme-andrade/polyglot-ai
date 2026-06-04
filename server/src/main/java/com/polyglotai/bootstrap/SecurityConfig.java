@@ -16,12 +16,16 @@ import org.springframework.security.web.SecurityFilterChain;
  *
  * <p>Two modes, switched explicitly by the {@code polyglot.security.insecure-dev} property:
  *
+ * <p>The auth entry points under {@code /api/auth/**} (e.g. registration) are public in both modes
+ * — they cannot require a token, since they are how a user obtains one.
+ *
  * <ul>
- *   <li><strong>Secure (default, {@code insecure-dev=false})</strong>: actuator health/info
- *       are open; everything else requires an authenticated principal. JWT resource-server
- *       validation activates if {@code spring.security.oauth2.resourceserver.jwt.issuer-uri}
- *       is also configured. Without an issuer URI, protected routes simply return 403 — the
- *       application is reachable but inert until an auth feature wires up a real provider.
+ *   <li><strong>Secure (default, {@code insecure-dev=false})</strong>: {@code /api/auth/**} and
+ *       actuator health/info are open; everything else requires an authenticated principal. JWT
+ *       resource-server validation activates if
+ *       {@code spring.security.oauth2.resourceserver.jwt.issuer-uri} is also configured. Without an
+ *       issuer URI, protected routes simply return 403 — the application is reachable but inert
+ *       until an auth feature wires up a real provider.
  *   <li><strong>Insecure dev opt-in ({@code insecure-dev=true})</strong>: additionally
  *       permits {@code /graphql} and {@code /graphiql/**} so developers can use GraphiQL
  *       without a token. The application logs a loud {@code WARN} at startup so this can
@@ -56,13 +60,13 @@ public class SecurityConfig {
                     + "unauthenticated requests. This must be FALSE in any deployed "
                     + "environment. Unset POLYGLOT_SECURITY_INSECURE_DEV (or set it to "
                     + "false) for staging and production.");
-            http.authorizeHttpRequests(
-                    a -> a.requestMatchers("/actuator/health/**", "/actuator/info", "/graphql", "/graphiql/**")
-                            .permitAll()
-                            .anyRequest()
-                            .authenticated());
+            http.authorizeHttpRequests(a -> a.requestMatchers(
+                            "/api/auth/**", "/actuator/health/**", "/actuator/info", "/graphql", "/graphiql/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated());
         } else {
-            http.authorizeHttpRequests(a -> a.requestMatchers("/actuator/health/**", "/actuator/info")
+            http.authorizeHttpRequests(a -> a.requestMatchers("/api/auth/**", "/actuator/health/**", "/actuator/info")
                     .permitAll()
                     .anyRequest()
                     .authenticated());
